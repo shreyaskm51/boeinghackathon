@@ -325,7 +325,9 @@ export default function App() {
               <div className="kpi-label">Active Vessels (≤ 370 km EEZ)</div>
               <div className="kpi-value">{kpis.total_active_vessels}</div>
               <div className={`kpi-delta ${kpis.total_dark_vessels > 0 ? "alert" : ""}`}>
-                {kpis.total_dark_vessels} Dark Vessel(s) flagged
+                {kpis.ais_checked === false
+                  ? "Dark vessels: AIS not checked"
+                  : `${kpis.total_dark_vessels} Dark Vessel(s) flagged`}
               </div>
             </div>
 
@@ -485,7 +487,8 @@ export default function App() {
                       </span>
                       <span className="muted">
                         {port.counts.berth_occupied}/{port.max_berths} berths ·{" "}
-                        {port.counts.anchorage_waiting} queued · {port.dark_vessels_detected} dark
+                        {port.counts.anchorage_waiting} queued ·{" "}
+                        {kpis.ais_checked === false ? "AIS n/a" : `${port.dark_vessels_detected} dark`}
                       </span>
                     </div>
                     <div className="progress-track">
@@ -654,7 +657,7 @@ export default function App() {
                           ? `${Math.round(r.utilization_index * 100)}%`
                           : "—"}
                       </td>
-                      <td>{r.in_active_swath ? r.dark_vessels_detected : "—"}</td>
+                      <td>{r.in_active_swath ? (kpis.ais_checked === false ? "n/a" : r.dark_vessels_detected) : "—"}</td>
                       <td>{r.in_active_swath ? r.estimated_trade_value_inr_cr : "—"}</td>
                       <td>{r.operational_profile}</td>
                     </tr>

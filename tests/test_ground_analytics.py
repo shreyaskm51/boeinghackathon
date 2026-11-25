@@ -310,3 +310,21 @@ def test_xband_simulation_returns_spotlight_previews() -> None:
     payload = EdgePortState().run_simulation(port_id="IN-KAK", sensor_mode="X-BAND")
     assert payload["simulation"]["sensor_mode"] == "X-BAND"
     assert payload["simulation"]["xband_overlay_preview_url"].startswith("data:image/png;base64,")
+
+
+def test_alert_wording_for_real_scenes() -> None:
+    summary = {"port_id": "IN-RDI", "max_berths": 4, "dark_vessels_detected": 0,
+               "observed_utc": "2026-11-24T00:55:27Z", "data_source": "SENTINEL-1",
+               "counts": {"berth_occupied": 1, "anchorage_waiting": 2, "coastal_fishing_boats": 0,
+                          "approaching_ferries": 0, "offshore_eez_vessels": 0}}
+    alert = format_port_alert(summary, [], ais_checked=False)
+    assert alert.startswith("EDGEPORT ALERT [IN-RDI] 24 Nov:")
+    assert "AIS not checked" in alert and len(alert) <= MAX_SMS_LENGTH
+
+    unseen = format_port_alert({"port_id": "IN-KVT", "max_berths": 4, "data_source": "NO_SCENE", "counts": {}}, [],
+                               ais_checked=False)
+    assert unseen == "EDGEPORT ALERT [IN-KVT]: No recent satellite pass, port status unknown."
+
+    # simulated / AIS-checked alerts keep the original wording
+    simulated = format_port_alert({**summary, "observed_utc": None, "data_source": None}, [])
+    assert "AIS" not in simulated and simulated.startswith("EDGEPORT ALERT [IN-RDI]: ")

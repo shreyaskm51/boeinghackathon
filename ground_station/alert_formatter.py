@@ -7,6 +7,18 @@ from typing import Any
 MAX_SMS_LENGTH = 160
 
 
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def _short_date(iso: Any) -> str | None:
+    """'2026-11-24T00:55:27Z' -> '24 Nov' (None if missing or unparseable)."""
+    try:
+        text = str(iso)
+        return f"{int(text[8:10])} {_MONTHS[int(text[5:7]) - 1]}" if iso else None
+    except (ValueError, IndexError):
+        return None
+
+
 def _pluralize(count: int, singular: str, plural: str) -> str:
     return f"{count} {singular if count == 1 else plural}"
 
@@ -38,6 +50,7 @@ def format_port_alert(
     vessels: list[dict[str, Any]] | None = None,
     reroute_suggestion: dict[str, Any] | None = None,
     max_length: int = MAX_SMS_LENGTH,
+    ais_checked: bool = True,
 ) -> str:
     """Format a single plain-text SMS/WhatsApp alert per port, strictly <= max_length chars."""
     vessels = vessels or []
@@ -54,7 +67,13 @@ def format_port_alert(
     ferry_eta = _earliest_ferry_eta(port_id, vessels)
     fish_dist = _max_fishing_distance_km(port_id, vessels)
 
-    prefix = f"EDGEPORT ALERT [{port_id}]: "
+    # Real Sentinel-1 data: a port without a recent scene was not observed at all.
+    if port_summary.get("data_source") == "NO_SCENE":
+        return f"EDGEPORT ALERT [{port_id}]: No recent satellite pass, port status unknown."[:max_length]
+
+    # Real scenes can be days old, so say when the port was observed.
+    observed = _short_date(port_summary.get("observed_utc"))
+    prefix = f"EDGEPORT ALERT [{port_id}] {observed}: " if observed else f"EDGEPORT ALERT [{port_id}]: "
 
     # Candidate segment sets from most detailed to most compact.
     ferry_seg_full = (
@@ -75,8 +94,13 @@ def format_port_alert(
     )
     fish_seg_mid = f"{fishing} Boats" if fishing > 0 else None
 
-    dark_seg_full = f"{_pluralize(dark, 'Dark Vessel', 'Dark Vessels')} flagged" if dark > 0 else None
-    dark_seg_short = f"{dark} Dark" if dark > 0 else None
+    if ais_checked:
+        dark_seg_full = f"{_pluralize(dark, 'Dark Vessel', 'Dark Vessels')} flagged" if dark > 0 else None
+        dark_seg_short = f"{dark} Dark" if dark > 0 else None
+    else:
+        # No AIS from the time of the scene: absence of dark vessels means "not checked", not "none".
+        dark_seg_full = "AIS not checked"
+        dark_seg_short = "AIS n/a"
 
     reroute_id = reroute_suggestion.get("recommended_port_id") if reroute_suggestion else None
     reroute_seg = f"Reroute->{reroute_id}" if reroute_id else None
@@ -147,6 +171,7 @@ def format_all_alerts(analyzed_result: dict[str, Any], max_length: int = MAX_SMS
         item["port_id"]: item for item in analyzed_result.get("rerouting_suggestions", [])
     }
 
+    ais_checked = analyzed_result.get("kpis", {}).get("ais_checked", True)
     alerts: dict[str, str] = {}
     for port_summary in packet.get("ports_summary", []):
         pid = port_summary["port_id"]
@@ -155,5 +180,6 @@ def format_all_alerts(analyzed_result: dict[str, Any], max_length: int = MAX_SMS
             vessels=vessels,
             reroute_suggestion=reroutes_by_port.get(pid),
             max_length=max_length,
+            ais_checked=ais_checked,
         )
     return alerts
