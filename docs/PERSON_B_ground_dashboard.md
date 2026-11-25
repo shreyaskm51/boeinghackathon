@@ -4,6 +4,12 @@
 `data/ais_ground_truth.json`, `tests/test_ground_*.py`
 **Do not edit:** `onboard_ai/**`, `contracts/**` (contracts only via agreed PR)
 
+> **Update:** the dashboard is now **React**, not Streamlit. Instead of importing `run_pass`,
+> start `python -m api.server` and call it from React with `api/edgeport.ts`
+> (`getPorts`, `getLatest`, `runPass`, `imageUrl`) — see `api/README.md`. The Streamlit-specific
+> parts of the prompt below (app.py, Folium) translate to React components (e.g. react-leaflet
+> for the map). Keep analytics in Python via `enrich_packet()` or port them to TypeScript.
+
 ## Paste this into Antigravity
 
 > Read `EdgePort_PRD.pdf` (sections 2, 3, 4.1, 4.3, 5.2, 6), `TEAM_SPLIT.md`, `AGENTS.md`, and

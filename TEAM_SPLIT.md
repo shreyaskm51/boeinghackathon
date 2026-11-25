@@ -10,6 +10,13 @@ The PRD splits cleanly into two halves that only talk to each other through **on
 > read the port list from `data/ports_config.json`; never hard-code it. No fields were renamed
 > or removed. `run_pass` also gained an optional keyword `sensor_mode="C-BAND" | "X-BAND"`.
 
+> **Frontend is React (team decision).** The browser can't import Python, so Person A added
+> an HTTP API: `python -m api.server` (FastAPI, http://127.0.0.1:8000, docs at `/docs`).
+> React calls it with the ready-made client [`api/edgeport.ts`](api/edgeport.ts) — see
+> [`api/README.md`](api/README.md). Person A owns `api/`. Ground-station analytics can stay
+> in Python (define `enrich_packet(packet)` in `ground_station/analytics_engine.py` and the
+> API returns its output as `ground_station`) or move to TypeScript.
+
 ```
  PERSON A — Track B (Onboard AI)            PERSON B — Track A (Ground + Dashboard)
  ┌──────────────────────────────┐          ┌───────────────────────────────────────┐
