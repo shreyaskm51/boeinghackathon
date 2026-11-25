@@ -1,0 +1,137 @@
+{
+  "_note": "Simulated AIS / ReALCRaft transponder feed for Indian non-major ports (Person B - Track A). Intentionally leaves VSL-KAK-001 and VSL-GOP-001 unmatched to demonstrate dark vessel detection.",
+  "feed_source": "SIMULATED_INDIAN_COASTAL_AIS_REALCRAFT",
+  "generated_utc": "2026-11-25T12:29:45Z",
+  "records": [
+    {
+      "mmsi": "419001201",
+      "name": "MV KARWAR QUEEN",
+      "type": "FERRY",
+      "port_id": "IN-KRW",
+      "lat": 14.7918,
+      "lon": 74.0851,
+      "sog_knots": 14.2,
+      "timestamp": "2026-11-25T12:29:10Z"
+    },
+    {
+      "mmsi": "419001202",
+      "name": "MV KONKAN COASTER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KRW",
+      "lat": 14.8015,
+      "lon": 74.1120,
+      "sog_knots": 0.1,
+      "timestamp": "2026-11-25T12:28:40Z"
+    },
+    {
+      "mmsi": "419001203",
+      "name": "IFB MATSYA KANYA",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KRW",
+      "lat": 14.7750,
+      "lon": 74.0510,
+      "sog_knots": 7.5,
+      "timestamp": "2026-11-25T12:29:30Z"
+    },
+    {
+      "mmsi": "419001204",
+      "name": "MV UTTARA KANNADA",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KRW",
+      "lat": 14.7820,
+      "lon": 74.0600,
+      "sog_knots": 0.4,
+      "timestamp": "2026-11-25T12:27:55Z"
+    },
+    {
+      "mmsi": "419002301",
+      "name": "MV LAKSHADWEEP EXPRESS",
+      "type": "FERRY",
+      "port_id": "IN-BEY",
+      "lat": 11.1589,
+      "lon": 75.7728,
+      "sog_knots": 16.0,
+      "timestamp": "2026-11-25T12:29:20Z"
+    },
+    {
+      "mmsi": "419002302",
+      "name": "MV MALABAR TRADER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-BEY",
+      "lat": 11.1635,
+      "lon": 75.8010,
+      "sog_knots": 0.0,
+      "timestamp": "2026-11-25T12:28:15Z"
+    },
+    {
+      "mmsi": "419002303",
+      "name": "IFB SAGAR RANI",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-BEY",
+      "lat": 11.1480,
+      "lon": 75.7490,
+      "sog_knots": 6.8,
+      "timestamp": "2026-11-25T12:29:05Z"
+    },
+    {
+      "mmsi": "419003401",
+      "name": "MV GODAVARI PRIDE",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KAK",
+      "lat": 16.9540,
+      "lon": 82.2560,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:50Z"
+    },
+    {
+      "mmsi": "419003402",
+      "name": "MV COROMANDEL BULK",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KAK",
+      "lat": 16.9420,
+      "lon": 82.3520,
+      "sog_knots": 0.5,
+      "timestamp": "2026-11-25T12:27:30Z"
+    },
+    {
+      "mmsi": "419003403",
+      "name": "IFB ANDHRA STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KAK",
+      "lat": 17.0010,
+      "lon": 82.3100,
+      "sog_knots": 8.1,
+      "timestamp": "2026-11-25T12:29:12Z"
+    },
+    {
+      "mmsi": "419004501",
+      "name": "MV KALINGA CARRIER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-GOP",
+      "lat": 19.3025,
+      "lon": 84.9610,
+      "sog_knots": 0.0,
+      "timestamp": "2026-11-25T12:28:00Z"
+    },
+    {
+      "mmsi": "419004502",
+      "name": "MV CHILIKA FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-GOP",
+      "lat": 19.2760,
+      "lon": 85.0390,
+      "sog_knots": 0.3,
+      "timestamp": "2026-11-25T12:29:18Z"
+    },
+    {
+      "mmsi": "419004503",
+      "name": "IFB ODISHA PEARL",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-GOP",
+      "lat": 19.3180,
+      "lon": 85.0250,
+      "sog_knots": 7.0,
+      "timestamp": "2026-11-25T12:28:45Z"
+    }
+  ]
+}
