@@ -5,8 +5,8 @@ Hackathon MVP (Track A + Track B). Full spec: [`EdgePort_PRD.pdf`](EdgePort_PRD.
 
 - **Orbital Edge Engine (`onboard_ai/`)** — simulates a LEO SAR payload: land mask → CA-CFAR →
   ONNX classifier → WGS84 georeferencing → deletes the raster → < 200 KB JSON packet
-  covering 16 Indian regional ports (the PRD's original 3 KB budget was raised by team decision
-  so every vessel is listed; it is still a 99.99 % bandwidth saving).
+  covering 60 Indian regional and island ports (the PRD's original 3 KB budget was raised by team
+  decision so hundreds of vessels are listed; it is still a 99.99 % bandwidth saving).
 - **Ground Station & Dashboard (`ground_station/`, `app.py`)** — reads the packet, flags dark
   vessels against AIS, computes port utilization / ETAs / ₹ Cr trade, sends 160-char SMS alerts.
 

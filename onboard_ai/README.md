@@ -1,7 +1,7 @@
 # `onboard_ai/` — Orbital Edge Engine (Track B)
 
 ```bash
-python -m onboard_ai.edge_pipeline                       # full sweep, all 16 ports -> outputs/latest_telemetry.json
+python -m onboard_ai.edge_pipeline                       # full sweep, all 60 ports -> outputs/latest_telemetry.json
 python -m onboard_ai.edge_pipeline --port IN-KAK --sea-state MONSOON_ROUGH --pass-time 06:00
 python -m onboard_ai.edge_pipeline --port IN-KRW --upload my_scene.png
 python -m onboard_ai.edge_pipeline --sensor-mode X-BAND              # adds 3 m X-band spotlights
@@ -103,19 +103,23 @@ separate them from wave clutter.
 **Speed** (laptop CPU, detection + classification): C-band ~90 ms per port
 (75 ms coastal ROI + 15 ms for three offshore chips); X-band mode ~205 ms per port.
 
-**Full 16-port sweep** (moderate sea, 18:00 IST):
-
-| Mode | Raw SAR | Packet | Vessels | Onboard inference | Wall time incl. scene simulation |
-|---|---|---|---|---|---|
-| C-band | 2,278 MB | 73 KB (99.99 % saved) | 276, all in packet | 1.4 s | ~7 s |
-| X-band | 2,580 MB | 80 KB (99.99 % saved) | 305, all in packet | 3.2 s | ~20 s |
+**Full 60-port sweep** (moderate sea, 18:00 IST, C-band): 8,544 MB raw SAR -> 199.8 KB packet
+(99.99 % saved), 1,098 vessels detected / 742 in packet, onboard inference 5.2 s, ~26 s wall
+time including scene simulation (X-band mode roughly 2.5x slower).
 
 Most of the wall time is *generating* the synthetic scenes, which a real satellite would not
 do. For a snappy dashboard button, run a single port (~0.5 s C-band, ~1.3 s X-band).
 
 ## Known limits
-- 16 ports (contract v2). Ports beyond the original four use approximate harbour coordinates
-  and simulator traffic profiles chosen from each port's character (fishing hub, bulk port...).
+- 60 ports (Person B's list). 15 have hand-tuned traffic profiles; the rest get profiles derived
+  from their berth count and description (fishing harbour, bulk port, island ferry hub...).
+- ISLAND ports (Kavaratti, Minicoy, Port Blair, Campbell Bay) are modelled as a compact
+  1.6 x 6 km island east of the harbour, quay on its western shore, sea all around.
+- A full 60-port sweep detects ~1,100 vessels but only ~740 fit the 200 KB packet; the rest
+  (lowest priority: offshore / coastal fishing) are dropped from `vessels`, never from `counts`.
+- Each simulated pass writes `outputs/simulated_ais.json` (also `result["simulated_ais"]`):
+  AIS reports for the simulated vessels in the `data/ais_ground_truth.json` format, with
+  ~3–20 % of vessels (45 % of offshore cargo transits) deliberately missing = dark vessels.
 - `ais_matched` is always `false` and `dark_vessels_detected` always `0` — the ground station
   owns AIS matching.
 - Uploaded images without GeoTIFF georeferencing are assumed to be 10 m GSD centred on the

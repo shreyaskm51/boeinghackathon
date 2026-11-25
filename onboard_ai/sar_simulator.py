@@ -25,12 +25,16 @@ from __future__ import annotations
 import io
 import logging
 import math
+import zlib
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 
 import numpy as np
 from scipy import ndimage
 
 from onboard_ai.georeferencer import (
+    ISLAND_HALF_LENGTH_KM,
+    ISLAND_HALF_WIDTH_KM,
     GeoTransform,
     coastline_lon,
     get_port,
@@ -89,33 +93,50 @@ PORT_PROFILE = {
                    offshore=(6, 12), ferry_berth_share=0.05),
     "IN-GOP": dict(berth=(0.4, 0.75), anchorage=(1, 3), ferries=(0, 1), fishing=(6, 12),
                    offshore=(3, 7), ferry_berth_share=0.05),
-    # --- contract v2 ports
+    # --- hand-tuned profiles for well-known ports; all others use port_profile()
     "IN-PBD": dict(berth=(0.5, 0.85), anchorage=(1, 3), ferries=(0, 1), fishing=(12, 22),
                    offshore=(5, 10), ferry_berth_share=0.05),
     "IN-VRL": dict(berth=(0.4, 0.8), anchorage=(0, 2), ferries=(0, 1), fishing=(20, 32),
                    offshore=(8, 14), ferry_berth_share=0.0),   # India's biggest fishing harbour
-    "IN-DIG": dict(berth=(0.5, 0.9), anchorage=(2, 4), ferries=(0, 1), fishing=(6, 12),
+    "IN-DGH": dict(berth=(0.5, 0.9), anchorage=(2, 4), ferries=(0, 1), fishing=(6, 12),
                    offshore=(3, 7), ferry_berth_share=0.05),
-    "IN-RTC": dict(berth=(0.4, 0.75), anchorage=(0, 2), ferries=(0, 2), fishing=(12, 22),
+    "IN-RTN": dict(berth=(0.4, 0.75), anchorage=(0, 2), ferries=(0, 2), fishing=(12, 22),
                    offshore=(5, 9), ferry_berth_share=0.1),
-    "IN-MAL": dict(berth=(0.5, 0.9), anchorage=(0, 1), ferries=(0, 1), fishing=(18, 30),
+    "IN-MLP": dict(berth=(0.5, 0.9), anchorage=(0, 1), ferries=(0, 1), fishing=(18, 30),
                    offshore=(8, 14), ferry_berth_share=0.0),
-    "IN-MRM": dict(berth=(0.4, 0.8), anchorage=(1, 2), ferries=(1, 2), fishing=(12, 22),
-                   offshore=(5, 9), ferry_berth_share=0.3),   # Lakshadweep supply vessels
-    "IN-QUI": dict(berth=(0.3, 0.7), anchorage=(0, 2), ferries=(0, 1), fishing=(12, 22),
+    "IN-KLM": dict(berth=(0.3, 0.7), anchorage=(0, 2), ferries=(0, 1), fishing=(12, 22),
                    offshore=(5, 9), ferry_berth_share=0.05),
-    "IN-KRK": dict(berth=(0.6, 0.95), anchorage=(2, 5), ferries=(0, 0), fishing=(6, 12),
+    "IN-KKL": dict(berth=(0.6, 0.95), anchorage=(2, 5), ferries=(0, 0), fishing=(6, 12),
                    offshore=(3, 7), ferry_berth_share=0.0),
     "IN-CDL": dict(berth=(0.3, 0.7), anchorage=(0, 2), ferries=(0, 0), fishing=(10, 18),
                    offshore=(4, 8), ferry_berth_share=0.0),
-    "IN-KPT": dict(berth=(0.75, 1.0), anchorage=(4, 8), ferries=(0, 0), fishing=(6, 12),
+    "IN-KSP": dict(berth=(0.75, 1.0), anchorage=(4, 8), ferries=(0, 0), fishing=(6, 12),
                    offshore=(5, 10), ferry_berth_share=0.0),
-    "IN-MTP": dict(berth=(0.3, 0.6), anchorage=(0, 2), ferries=(0, 1), fishing=(12, 20),
+    "IN-MCP": dict(berth=(0.3, 0.6), anchorage=(0, 2), ferries=(0, 1), fishing=(12, 20),
                    offshore=(4, 8), ferry_berth_share=0.0),
-    "IN-DHA": dict(berth=(0.6, 0.95), anchorage=(3, 6), ferries=(0, 0), fishing=(5, 10),
+    "IN-DHM": dict(berth=(0.6, 0.95), anchorage=(3, 6), ferries=(0, 0), fishing=(5, 10),
                    offshore=(3, 7), ferry_berth_share=0.0),
 }
-DEFAULT_PROFILE = PORT_PROFILE["IN-GOP"]   # any port added to the config later
+DEFAULT_PROFILE = PORT_PROFILE["IN-GOP"]
+
+
+def port_profile(port: dict) -> dict:
+    """Traffic profile for a port: hand-tuned if known, else derived from its berths and description."""
+    if port["port_id"] in PORT_PROFILE:
+        return PORT_PROFILE[port["port_id"]]
+    text = (port.get("operational_profile", "") + " " + port.get("port_name", "")).lower()
+    berths = int(port.get("max_berths", 5))
+    fishing_hub = "fish" in text
+    bulk = any(k in text for k in ("bulk", "coal", "lng", "container", "deep", "petroleum", "oil", "ship"))
+    ferry_hub = port.get("coast") == "ISLAND" or any(k in text for k in ("ferry", "passenger", "ro-ro", "island"))
+    return dict(
+        berth=(0.65, 1.0) if bulk else (0.4, 0.8),
+        anchorage=(max(1, berths // 2), max(2, berths - 1)) if bulk else (0, max(1, berths // 3)),
+        ferries=(1, 3) if ferry_hub else (0, 1),
+        fishing=(18, 30) if fishing_hub else (6, 14),
+        offshore=(7, 13) if fishing_hub else (3, 8),
+        ferry_berth_share=0.5 if ferry_hub else 0.05,
+    )
 
 # Diurnal multipliers per LEO pass time.
 TIME_FACTOR = {
@@ -310,13 +331,13 @@ def _add_vessel(img, truth, rng, vtype, cx, cy, heading, length_m=None):
 
 def _coastal_tile(port: dict, state: SeaState, pass_time: str, rng) -> SceneTile:
     n = TILE_SIZE
-    coast = port["coast"]
-    seaward = -1 if coast == "WEST" else 1           # +col direction pointing to sea
-    coast_col = COAST_COL[coast]
+    coast = port["coast"]                             # WEST | EAST | ISLAND
+    seaward = 1 if coast == "EAST" else -1           # +col direction pointing to the approach sea
+    coast_col = COAST_COL["EAST" if coast == "EAST" else "WEST"]
     geo = GeoTransform.anchored(port["lat"], coastline_lon(port), coast_col, n // 2, PIXEL_M)
     bx0, by0, bx1, by1 = geo.bbox_to_pixels(port["berth_bbox"])
     ax0, ay0, ax1, ay1 = geo.bbox_to_pixels(port["anchorage_bbox"])
-    prof = PORT_PROFILE.get(port["port_id"], DEFAULT_PROFILE)
+    prof = port_profile(port)
     tf = TIME_FACTOR[pass_time]
     fish_factor = tf["fishing"] * SEA_FISHING_FACTOR[state.name]
 
@@ -325,11 +346,27 @@ def _coastal_tile(port: dict, state: SeaState, pass_time: str, rng) -> SceneTile
     wiggle = ndimage.gaussian_filter1d(rng.standard_normal(n), 60)
     wiggle *= 35.0 / (np.abs(wiggle).max() + 1e-9)
     dist_to_quay = np.maximum(0, np.maximum((by0 - 40) - rows, rows - (by1 + 40)))
-    coast_cols = coast_col + wiggle * np.clip(dist_to_quay / 150.0, 0, 1)
+    taper = np.clip(dist_to_quay / 150.0, 0, 1)
     cols = np.arange(n)[None, :]
-    land = cols >= coast_cols[:, None] if coast == "WEST" else cols <= coast_cols[:, None]
+    if coast == "ISLAND":
+        # compact island east of the harbour: ellipse with a straight quay along the berths
+        a_px = ISLAND_HALF_LENGTH_KM * 1000.0 / PIXEL_M
+        b_px = ISLAND_HALF_WIDTH_KM * 1000.0 / PIXEL_M
+        dy = (rows - n // 2) / a_px
+        inside = np.abs(dy) < 1.0
+        half = b_px * np.sqrt(np.clip(1.0 - dy ** 2, 0.0, None)) * (1.0 + 0.1 * wiggle / 35.0 * taper)
+        west = np.where(inside, coast_col + b_px - half, np.inf)
+        east = np.where(inside, coast_col + b_px + half, -np.inf)
+        west[inside & (dist_to_quay == 0)] = coast_col
+        coast_cols = west
+        land = (cols >= west[:, None]) & (cols <= east[:, None])
+    else:
+        coast_cols = coast_col + wiggle * taper
+        land = cols >= coast_cols[:, None] if coast == "WEST" else cols <= coast_cols[:, None]
     bw_r0 = int(by0) - 12
-    bw_c0, bw_c1 = sorted((coast_col, coast_col + seaward * 80))
+    bw_ref = coast_cols[min(max(bw_r0, 0), n - 1)]
+    bw_start = int(bw_ref) if np.isfinite(bw_ref) else coast_col
+    bw_c0, bw_c1 = sorted((bw_start, bw_start + seaward * 80))
     land[max(bw_r0, 0):max(bw_r0 + 4, 0), bw_c0:bw_c1 + 1] = True
 
     # --- backscatter
@@ -340,8 +377,8 @@ def _coastal_tile(port: dict, state: SeaState, pass_time: str, rng) -> SceneTile
     pick = rng.choice(ly.size, size=min(600, ly.size), replace=False)
     img[ly[pick], lx[pick]] = rng.uniform(15000, 45000, size=pick.size)  # buildings, towers
     for r in range(int(by0), int(by1), 30):                              # quay cranes
-        if 0 <= r < n:
-            img[r, coast_col - seaward * 2] = 40000.0
+        if 0 <= r < n and np.isfinite(coast_cols[r]):
+            img[r, int(coast_cols[r]) - seaward * 2] = 40000.0
     img[max(bw_r0, 0):max(bw_r0 + 4, 0), bw_c0:bw_c1 + 1:7] = 30000.0     # breakwater lights
 
     truth: list[GroundTruthVessel] = []
@@ -357,24 +394,30 @@ def _coastal_tile(port: dict, state: SeaState, pass_time: str, rng) -> SceneTile
         lo, hi = VESSEL_LENGTH_M[vtype]
         length = rng.uniform(lo, min(hi, 0.8 * slot_len * PIXEL_M))
         cy = by0 + 10 + slot_len * (slot + 0.5)
-        cx = coast_col + seaward * (vessel_width_px(length) / 2 + 4)
+        quay = coast_cols[min(max(int(cy), 0), n - 1)]
+        cx = (quay if np.isfinite(quay) else coast_col) + seaward * (vessel_width_px(length) / 2 + 4)
         _add_vessel(img, truth, rng, vtype, cx, cy, rng.choice([0.0, 180.0]), length)
         occupied.append((cx, cy))
 
     def in_rect(p, r, pad=0):
         return r[0] - pad <= p[0] <= r[2] + pad and r[1] - pad <= p[1] <= r[3] + pad
 
+    def is_sea(p, margin=10):
+        x, y = int(round(p[0])), int(round(p[1]))
+        if not (20 <= x < n - 20 and 20 <= y < n - 20):
+            return False
+        return not land[max(y - margin, 0):y + margin + 1, max(x - margin, 0):x + margin + 1].any()
+
     def sea_point(margin_land=10):
-        x, y = rng.uniform(20, n - 20), rng.uniform(20, n - 20)
-        seaward_px = (x - coast_cols[int(y)]) * seaward
-        if seaward_px < margin_land:  # on land or hugging the shore
-            return None
-        return x, y
+        p = (rng.uniform(20, n - 20), rng.uniform(20, n - 20))
+        return p if is_sea(p, margin_land) else None
 
     # --- anchorage queue
     for _ in range(_count(rng, prof["anchorage"], tf["cargo"])):
-        pos = _place(rng, lambda: (rng.uniform(ax0 + 15, ax1 - 15), rng.uniform(ay0 + 15, ay1 - 15)),
-                     occupied, 28)
+        def anchor_pos():
+            p = (rng.uniform(ax0 + 15, ax1 - 15), rng.uniform(ay0 + 15, ay1 - 15))
+            return p if is_sea(p, 12) else None
+        pos = _place(rng, anchor_pos, occupied, 28)
         if pos:
             _add_vessel(img, truth, rng, "CARGO_VESSEL", *pos, rng.uniform(0, 360))
             occupied.append(pos)
@@ -387,7 +430,7 @@ def _coastal_tile(port: dict, state: SeaState, pass_time: str, rng) -> SceneTile
             t = rng.uniform(0.1, 0.75)
             p = (start[0] + t * (port_px[0] - start[0]) + rng.uniform(-30, 30),
                  start[1] + t * (port_px[1] - start[1]) + rng.uniform(-30, 30))
-            if in_rect(p, (ax0, ay0, ax1, ay1), 20) or in_rect(p, (bx0, by0, bx1, by1), 20):
+            if in_rect(p, (ax0, ay0, ax1, ay1), 20) or in_rect(p, (bx0, by0, bx1, by1), 20) or not is_sea(p):
                 return None
             return p
         pos = _place(rng, ferry_pos, occupied, 25)
@@ -402,8 +445,7 @@ def _coastal_tile(port: dict, state: SeaState, pass_time: str, rng) -> SceneTile
             if rng.random() < 0.5:
                 x = coast_col + seaward * (20 + abs(rng.normal(0, 250)))
                 p = (x, n / 2 + rng.normal(0, 300))
-                if not (20 <= p[0] < n - 20 and 20 <= p[1] < n - 20) or \
-                        (p[0] - coast_cols[int(p[1])]) * seaward < 10:
+                if not is_sea(p):
                     return None
             else:
                 p = sea_point()
@@ -421,7 +463,7 @@ def _coastal_tile(port: dict, state: SeaState, pass_time: str, rng) -> SceneTile
 
 def _offshore_tiles(port: dict, state: SeaState, pass_time: str, rng) -> list[SceneTile]:
     n = OFFSHORE_TILE_SIZE
-    prof = PORT_PROFILE.get(port["port_id"], DEFAULT_PROFILE)
+    prof = port_profile(port)
     fish_factor = TIME_FACTOR[pass_time]["fishing"] * SEA_FISHING_FACTOR[state.name]
     total_fishing = _count(rng, prof["offshore"], fish_factor)
     per_tile = rng.multinomial(total_fishing, [1 / N_OFFSHORE_TILES] * N_OFFSHORE_TILES)
@@ -457,7 +499,7 @@ def _xband_spotlight(port: dict, state: SeaState, coastal: SceneTile, rng) -> Sc
     """
     n = XBAND_TILE_SIZE
     coast = port["coast"]
-    x_coast_col = n - XBAND_LAND_PX if coast == "WEST" else XBAND_LAND_PX
+    x_coast_col = XBAND_LAND_PX if coast == "EAST" else n - XBAND_LAND_PX   # spotlight faces the approach sea
     geo = GeoTransform.anchored(port["lat"], coastline_lon(port), x_coast_col, n // 2, XBAND_PIXEL_M)
 
     # Land mask: resample the cached C-band coastline onto the 3 m grid (nearest neighbour).
@@ -666,3 +708,59 @@ def to_display_uint8(img: np.ndarray) -> np.ndarray:
     sample = db[:: max(1, db.shape[0] // 512), :: max(1, db.shape[1] // 512)]
     lo, hi = np.percentile(sample, [2.0, 99.7])
     return np.clip((db - lo) / max(hi - lo, 1e-6) * 255.0, 0, 255).astype(np.uint8)
+
+
+# --------------------------------------------------------------------------- simulated AIS
+
+# Probability that a simulated vessel is broadcasting AIS at pass time. The rest are "dark":
+# small fishing boats without transponders, and some offshore transits with AIS switched off.
+AIS_BROADCAST_PROB = {"CARGO_VESSEL": 0.93, "FERRY": 0.97, "FISHING_BOAT": 0.80}
+AIS_BROADCAST_PROB_OFFSHORE_CARGO = 0.55
+AIS_POSITION_NOISE_M = 40.0     # GPS error + report latency, per axis (1 sigma)
+AIS_SPEED_KN = {"CARGO_VESSEL": 11.0, "FERRY": 14.0, "FISHING_BOAT": 7.0}
+_AIS_TYPE_ABBR = {"CARGO_VESSEL": "CARGO", "FERRY": "FERRY", "FISHING_BOAT": "FISH"}
+
+
+def simulated_ais_records(orbital: OrbitalPass, port: dict, pass_utc: datetime,
+                          seed: int | None = None) -> list[dict]:
+    """AIS position reports for the simulated vessels of one pass.
+
+    This is the ground-truth AIS feed that matches the synthetic scene, so the ground station
+    can cross-match detections and flag only genuinely dark vessels. Records use the same
+    format as ``data/ais_ground_truth.json``. Uploaded scenes have no ground truth -> ``[]``.
+    """
+    if orbital.source != "SIMULATED":
+        return []
+    rng = np.random.default_rng(seed)
+    code = port["port_id"].split("-", 1)[-1]
+    mmsi_block = zlib.crc32(port["port_id"].encode()) % 100
+    min_lon, min_lat, max_lon, max_lat = port["berth_bbox"]
+    records: list[dict] = []
+    k = 0
+    for tile in orbital.tiles:
+        if tile.sensor != "C-BAND":          # X-band images the same vessels again
+            continue
+        offshore = tile.name.startswith("OFFSHORE")
+        for v in tile.truth:
+            k += 1
+            prob = (AIS_BROADCAST_PROB_OFFSHORE_CARGO if offshore and v.vessel_type == "CARGO_VESSEL"
+                    else AIS_BROADCAST_PROB[v.vessel_type])
+            if rng.random() >= prob:
+                continue                      # dark: no AIS report for this vessel
+            lat, lon = tile.geo.pixel_to_latlon(v.px, v.py)
+            lat += rng.normal(0.0, AIS_POSITION_NOISE_M) / 111_320.0
+            lon += rng.normal(0.0, AIS_POSITION_NOISE_M) / (111_320.0 * math.cos(math.radians(lat)))
+            at_berth = min_lon <= lon <= max_lon and min_lat <= lat <= max_lat
+            sog = rng.uniform(0.0, 0.3) if at_berth else max(0.0, rng.normal(AIS_SPEED_KN[v.vessel_type], 1.5))
+            ts = pass_utc - timedelta(seconds=float(rng.uniform(5, 90)))
+            records.append({
+                "mmsi": f"419{mmsi_block:02d}{k:04d}",
+                "name": f"SIM {code} {_AIS_TYPE_ABBR[v.vessel_type]}-{k:03d}",
+                "type": v.vessel_type,
+                "port_id": port["port_id"],
+                "lat": round(lat, 5),
+                "lon": round(lon, 5),
+                "sog_knots": round(sog, 1),
+                "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            })
+    return records

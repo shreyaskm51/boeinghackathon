@@ -29,7 +29,7 @@
 >    Generate 64×64 PNG chips only for CRITICAL_CONGESTION or DARK_VESSEL_OFFSHORE.
 >    Add `if __name__ == "__main__":` so `python -m onboard_ai.edge_pipeline` writes a packet.
 > 5. `tests/test_onboard_pipeline.py` (pytest): packet validates against the schema, is < 200 KB,
->    bandwidth_saved_pct > 99, all 16 ports present on a full sweep.
+>    bandwidth_saved_pct > 99, all 60 ports present on a full sweep.
 >
 > Keep the packet under 200 KB (contract v2; measured minified with `separators=(",", ":")`).
 > Every detected vessel normally fits; if a sweep ever exceeds the budget, keep all port

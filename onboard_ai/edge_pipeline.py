@@ -49,6 +49,7 @@ from onboard_ai.sar_simulator import (
     normalize_sea_state,
     normalize_sensor_mode,
     simulate_pass,
+    simulated_ais_records,
     to_display_uint8,
 )
 
@@ -57,6 +58,8 @@ log = logging.getLogger("edgeport.onboard.pipeline")
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = "outputs/latest_telemetry.json"
 CHIP_DIR = ROOT / "outputs" / "chips"
+# AIS reports matching the simulated scene (ground station cross-matches against these)
+SIMULATED_AIS_PATH = ROOT / "outputs" / "simulated_ais.json"
 
 SATELLITE_ID = "EOS-EDGEPORT-LEO-04"
 SENSOR_MODE_LABEL = {"C-BAND": "C-BAND_SAR_ALL_WEATHER", "X-BAND": "X-BAND_SAR_HIGH_RES"}
@@ -84,10 +87,14 @@ def _resolve_output(path: str | Path) -> Path:
     return p if p.is_absolute() else ROOT / p
 
 
-def _pass_timestamp_utc(pass_time_ist: str) -> str:
+def _pass_datetime_utc(pass_time_ist: str) -> datetime:
     hh, mm = (int(v) for v in pass_time_ist.split(":"))
     local = datetime.combine(datetime.now(IST).date(), dtime(hh, mm), tzinfo=IST)
-    return local.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return local.astimezone(timezone.utc)
+
+
+def _pass_timestamp_utc(pass_time_ist: str) -> str:
+    return _pass_datetime_utc(pass_time_ist).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _congestion_status(utilization: float) -> str:
@@ -276,7 +283,9 @@ def run_pass(
     Returns:
         ``{"telemetry": packet dict, "raw_preview": uint8 HxW, "overlay_preview": uint8 HxWx3,
         "xband_raw_preview": uint8 HxW | None, "xband_overlay_preview": uint8 HxWx3 | None,
-        "alert_chips": list[PNG bytes], "stats": {...}}``
+        "alert_chips": list[PNG bytes], "simulated_ais": list[AIS record], "stats": {...}}``
+        ``simulated_ais`` (also written to ``outputs/simulated_ais.json``) holds AIS reports for
+        the simulated vessels; ~5-20 % are deliberately missing (dark vessels).
     """
     t_start = time.perf_counter()
     sea = normalize_sea_state(sea_state)
@@ -286,6 +295,8 @@ def run_pass(
         port_id = "IN-KRW"
     port_ids = [get_port(port_id)["port_id"]] if port_id else [p["port_id"] for p in load_ports_config()["ports"]]
     base_seed = seed if seed is not None else zlib.crc32(f"{pass_time}|{sea}".encode())
+    pass_utc = _pass_datetime_utc(pass_time)
+    ais_records: list[dict] = []
 
     classifier = get_classifier()
     summaries: list[dict] = []
@@ -361,6 +372,8 @@ def run_pass(
 
         # ---- purge the raw raster: nothing but kilobytes of insight leaves the satellite
         found.clear()
+        ais_records.extend(simulated_ais_records(orbital, port, pass_utc,
+                                                 seed=(base_seed + 7919 * idx + 1) % 2 ** 32))
         orbital.purge()
         del orbital
         gc.collect()
@@ -369,7 +382,7 @@ def run_pass(
     header = {
         "satellite_id": SATELLITE_ID,
         "sensor_mode": SENSOR_MODE_LABEL[sensor],
-        "pass_timestamp_utc": _pass_timestamp_utc(pass_time),
+        "pass_timestamp_utc": pass_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "monitoring_limit_km": MONITORING_LIMIT_KM,
         "raw_scene_size_mb": raw_mb,
         "cropped_roi_size_mb": round(roi_bytes / 1e6, 1),
@@ -384,6 +397,14 @@ def run_pass(
     out.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(packet, separators=(",", ":"), ensure_ascii=False)
     out.write_text(payload, encoding="utf-8")
+    SIMULATED_AIS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SIMULATED_AIS_PATH.write_text(json.dumps({
+        "_note": "AIS reports for the vessels of the latest *simulated* pass (ground truth for the "
+                 "synthetic scene; vessels missing here are dark). Empty for uploaded images.",
+        "feed_source": "EDGEPORT_SIMULATOR_AIS",
+        "generated_utc": pass_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "records": ais_records,
+    }, indent=1), encoding="utf-8")
 
     detected = sum(len(v) for v in per_port)
     stats = {
@@ -401,6 +422,7 @@ def run_pass(
         "preview_port_id": preview_port,
         "output_path": str(out),
         "source": "UPLOAD" if uploaded_image is not None else "SIMULATED",
+        "simulated_ais_records": len(ais_records),
         "sensor_mode": sensor,
     }
     log.info("Pass %s IST %s %s over %s: raw %.1f MB -> JSON %.2f KB (%.2f%% bandwidth saved), "
@@ -414,6 +436,7 @@ def run_pass(
         "xband_raw_preview": x_raw_preview,
         "xband_overlay_preview": x_overlay_preview,
         "alert_chips": chips,
+        "simulated_ais": ais_records,
         "stats": stats,
     }
 

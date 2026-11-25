@@ -45,8 +45,9 @@ def test_full_sweep_packet_matches_contract(sweep):
     assert [p["port_id"] for p in result["telemetry"]["ports_summary"]] == PORT_IDS
 
 
-def test_ports_config_has_16_ports():
-    assert len(PORT_IDS) == 16 and len(set(PORT_IDS)) == 16
+def test_ports_config_has_60_ports_including_islands():
+    assert len(PORT_IDS) == 60 and len(set(PORT_IDS)) == 60
+    assert {p["coast"] for p in load_ports_config()["ports"]} == {"WEST", "EAST", "ISLAND"}
 
 
 def test_packet_file_is_within_budget_and_header_is_truthful(sweep):
@@ -63,8 +64,14 @@ def test_vessel_records_are_consistent(sweep):
     result, _ = sweep
     packet = result["telemetry"]
     assert packet["vessels"], "budget should leave room for at least one vessel"
-    # with the 200 KB budget every detected vessel is downlinked
-    assert len(packet["vessels"]) == result["stats"]["vessels_detected"]
+    # every detected vessel is downlinked unless the 200 KB budget is full; then the lowest
+    # priority vessels are dropped but every port keeps some vessels
+    n_detected = result["stats"]["vessels_detected"]
+    if len(packet["vessels"]) < n_detected:
+        assert result["stats"]["downlinked_json_bytes"] > PACKET_LIMIT_BYTES - 2048
+        assert {v["port_id"] for v in packet["vessels"]} == set(PORT_IDS)
+    else:
+        assert len(packet["vessels"]) == n_detected
     ids = [v["vessel_id"] for v in packet["vessels"]]
     assert len(ids) == len(set(ids))
     for v in packet["vessels"]:
@@ -139,8 +146,9 @@ def test_land_mask_suppresses_bright_land():
 
 
 def test_onboard_inference_is_fast(sweep):
-    # 4-port C-band sweep; ~90 ms/port on a laptop CPU. Generous bound to avoid flaky CI.
-    assert sweep[0]["telemetry"]["telemetry_header"]["onboard_inference_time_ms"] < 1500
+    # full C-band sweep; ~90 ms/port on a laptop CPU. Generous per-port bound to avoid flaky CI.
+    per_port_ms = sweep[0]["telemetry"]["telemetry_header"]["onboard_inference_time_ms"] / len(PORT_IDS)
+    assert per_port_ms < 300
 
 
 # ------------------------------------------------------------------ X-band mode
@@ -240,9 +248,12 @@ def test_geotransform_roundtrip():
 @pytest.mark.parametrize("port_id", PORT_IDS)
 def test_zone_tagging_uses_port_polygons(port_id):
     port = get_port(port_id)
-    for key, zone in (("berth_bbox", "BERTH"), ("anchorage_bbox", "ANCHORAGE_QUEUE")):
-        min_lon, min_lat, max_lon, max_lat = port[key]
-        assert classify_zone(port, (min_lat + max_lat) / 2, (min_lon + max_lon) / 2, 1.0) == zone
+    bmin_lon, bmin_lat, bmax_lon, bmax_lat = port["berth_bbox"]
+    assert classify_zone(port, (bmin_lat + bmax_lat) / 2, (bmin_lon + bmax_lon) / 2, 1.0) == "BERTH"
+    amin_lon, amin_lat, amax_lon, amax_lat = port["anchorage_bbox"]
+    # a point inside the anchorage box but outside the berth box (islands: the box surrounds the berths)
+    lon = (amin_lon + bmin_lon) / 2 if amin_lon < bmin_lon else (amin_lon + amax_lon) / 2
+    assert classify_zone(port, (amin_lat + amax_lat) / 2, lon, 1.0) == "ANCHORAGE_QUEUE"
     assert classify_zone(port, port["lat"] + 0.5, port["lon"], 20.0) == "COASTAL_APPROACH"
     assert classify_zone(port, port["lat"] + 0.5, port["lon"], 120.0) == "OFFSHORE_EEZ"
 
@@ -275,3 +286,60 @@ def test_uploaded_npy_runs_through_pipeline(tmp_path):
     result = run_pass("IN-GOP", uploaded_image=buf.getvalue(), output_path=str(tmp_path / "npy.json"))
     _validate(result["telemetry"])
     assert result["stats"]["vessels_detected"] > 0
+
+
+# ------------------------------------------------------------------ island ports
+
+@pytest.mark.parametrize("port_id", ["IN-KVT", "IN-PBL"])
+def test_island_ports_simulate_with_land_on_both_sides_and_no_vessels_on_land(port_id):
+    from onboard_ai.georeferencer import coastline_lon, distance_from_shore_km
+
+    p = simulate_pass(port_id, "CALM", "06:00", seed=3, sensor_mode="X-BAND")
+    coastal, xband = p.tiles[0], p.tiles[-1]
+    assert 0.005 < coastal.land_mask.mean() < 0.1          # a compact island, not a coastline
+    for tile in (coastal, xband):
+        assert not any(tile.land_mask[int(v.py), int(v.px)] for v in tile.truth)
+    port = get_port(port_id)
+    assert distance_from_shore_km(port, port["lat"], coastline_lon(port) - 0.05) > 4   # west of island
+    assert distance_from_shore_km(port, port["lat"], coastline_lon(port) + 0.2) > 4    # east of island
+    assert distance_from_shore_km(port, port["lat"], coastline_lon(port) + 0.005) == 0  # on the island
+
+
+def test_island_port_full_pass(tmp_path):
+    result = run_pass("IN-MNC", "MODERATE", "18:00", output_path=str(tmp_path / "i.json"), seed=4)
+    _validate(result["telemetry"])
+    assert result["stats"]["vessels_detected"] > 0
+
+
+# ------------------------------------------------------------------ simulated AIS
+
+def test_simulated_ais_covers_most_vessels_and_leaves_some_dark(tmp_path):
+    from onboard_ai.edge_pipeline import SIMULATED_AIS_PATH
+
+    p = simulate_pass("IN-KAK", "MODERATE", "18:00", seed=21)
+    n_true = sum(len(t.truth) for t in p.tiles if t.sensor == "C-BAND")
+    result = run_pass("IN-KAK", "MODERATE", "18:00", output_path=str(tmp_path / "a.json"), seed=21)
+    records = result["simulated_ais"]
+    assert 0.6 * n_true <= len(records) < n_true            # most broadcast, some are dark
+    rec = records[0]
+    assert set(rec) == {"mmsi", "name", "type", "port_id", "lat", "lon", "sog_knots", "timestamp"}
+    assert len({r["mmsi"] for r in records}) == len(records)
+    on_disk = json.loads(SIMULATED_AIS_PATH.read_text(encoding="utf-8"))
+    assert on_disk["records"] == records
+
+
+def test_simulated_ais_lets_ground_station_flag_only_few_dark_vessels(tmp_path):
+    analytics = pytest.importorskip("ground_station.analytics_engine")
+    result = run_pass("IN-KRW", "MODERATE", "18:00", output_path=str(tmp_path / "g.json"), seed=6)
+    analyzed = analytics.analyze_telemetry(packet=result["telemetry"], ais_records=result["simulated_ais"])
+    vessels = analyzed["packet"]["vessels"]
+    dark = sum(not v["ais_matched"] for v in vessels)
+    assert vessels and dark <= 0.4 * len(vessels)
+
+
+def test_upload_produces_empty_simulated_ais(tmp_path):
+    tile = simulate_pass("IN-GOP", "MODERATE", "18:00", seed=4).tiles[0]
+    buf = io.BytesIO()
+    np.save(buf, tile.image)
+    result = run_pass("IN-GOP", uploaded_image=buf.getvalue(), output_path=str(tmp_path / "u.json"))
+    assert result["simulated_ais"] == []

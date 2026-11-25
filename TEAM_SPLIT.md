@@ -4,18 +4,19 @@ The PRD splits cleanly into two halves that only talk to each other through **on
 `outputs/latest_telemetry.json` (the < 200 KB orbital packet). Agree on that format (see
 `contracts/`) and you can both build at the same time without blocking each other.
 
-> **Contract change v2 (team decision):** 16 ports instead of 4, and the packet budget is now
-> **< 200 KB** instead of < 3 KB, so every detected vessel is listed (16 x 142.4 MB raw SAR ->
-> ~100–150 KB JSON is still a 99.99 % bandwidth saving). `port_id` is now any `IN-XXX` code —
+> **Contract change v2 (team decision):** 60 ports instead of 4 (Person B's list, incl. 4 islands),
+> and the packet budget is now **< 200 KB** instead of < 3 KB (60 x 142.4 MB raw SAR -> ~200 KB
+> JSON is still a 99.99 % bandwidth saving). A 60-port sweep detects ~1,100 vessels; ~740 fit,
+> chosen by priority, every port keeps some. `port_id` is now any `IN-XXX` code —
 > read the port list from `data/ports_config.json`; never hard-code it. No fields were renamed
 > or removed. `run_pass` also gained an optional keyword `sensor_mode="C-BAND" | "X-BAND"`.
 
-> **Frontend is React (team decision).** The browser can't import Python, so Person A added
-> an HTTP API: `python -m api.server` (FastAPI, http://127.0.0.1:8000, docs at `/docs`).
-> React calls it with the ready-made client [`api/edgeport.ts`](api/edgeport.ts) — see
-> [`api/README.md`](api/README.md). Person A owns `api/`. Ground-station analytics can stay
-> in Python (define `enrich_packet(packet)` in `ground_station/analytics_engine.py` and the
-> API returns its output as `ground_station`) or move to TypeScript.
+> **Frontend is React (team decision).** Person B's `ground_station/api_server.py` serves the
+> React app and the API (`/api/dashboard`, `/api/simulate`, `/api/reload`) and calls
+> `onboard_ai.edge_pipeline.run_pass` for live passes. Each simulated pass also writes
+> `outputs/simulated_ais.json` — AIS reports for the simulated vessels (same format as
+> `data/ais_ground_truth.json`, ~5–20 % deliberately missing) — so the ground station's AIS
+> matching flags only genuinely dark vessels. Ports: Person B's 60-port list (incl. 4 ISLAND ports).
 
 ```
  PERSON A — Track B (Onboard AI)            PERSON B — Track A (Ground + Dashboard)
@@ -66,7 +67,7 @@ The "Run Orbital Pass Simulation" button in `app.py` (Person B) calls
 
 ```python
 def run_pass(
-    port_id: str | None = None,          # None = full constellation sweep (all 16 ports)
+    port_id: str | None = None,          # None = full constellation sweep (all 60 ports)
     sea_state: str = "MODERATE",          # "CALM" | "MODERATE" | "MONSOON_ROUGH"
     pass_time_ist: str = "18:00",         # "06:00" | "12:00" | "18:00" | "23:30"
     uploaded_image: bytes | None = None,  # optional user .tif/.png

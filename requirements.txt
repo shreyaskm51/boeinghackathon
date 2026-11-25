@@ -11,10 +11,5 @@ streamlit-folium>=0.18.0
 Pillow>=10.2.0
 jsonschema>=4.21.0
 pytest>=8.0.0
-# HTTP API for the React dashboard (python -m api.server)
-fastapi>=0.110.0
-uvicorn>=0.29.0
-python-multipart>=0.0.9
-httpx>=0.27.0
 # Optional (GeoTIFF upload support). Code must wrap `import rasterio` in try/except ImportError.
 # rasterio>=1.3.9

@@ -4,11 +4,10 @@
 `data/ais_ground_truth.json`, `tests/test_ground_*.py`
 **Do not edit:** `onboard_ai/**`, `contracts/**` (contracts only via agreed PR)
 
-> **Update:** the dashboard is now **React**, not Streamlit. Instead of importing `run_pass`,
-> start `python -m api.server` and call it from React with `api/edgeport.ts`
-> (`getPorts`, `getLatest`, `runPass`, `imageUrl`) — see `api/README.md`. The Streamlit-specific
-> parts of the prompt below (app.py, Folium) translate to React components (e.g. react-leaflet
-> for the map). Keep analytics in Python via `enrich_packet()` or port them to TypeScript.
+> **Update:** the dashboard is now **React**, served with the API by `ground_station/api_server.py`.
+> For live passes it calls `onboard_ai.edge_pipeline.run_pass(...)`; read the AIS reports for the
+> simulated vessels from `outputs/simulated_ais.json` (also `result["simulated_ais"]`) and match
+> against them together with `data/ais_ground_truth.json`, or every simulated ship looks dark.
 
 ## Paste this into Antigravity
 
@@ -18,7 +17,7 @@
 > pipeline is being built in parallel by my teammate.
 >
 > 1. `data/ais_ground_truth.json`: simulated AIS records (MMSI, name, type, lat, lon, timestamp)
->    near the 16 ports in `data/ports_config.json` (read the list from that file, never
+>    near the 60 ports in `data/ports_config.json` (read the list from that file, never
 >    hard-code port IDs) — deliberately leave a few vessels from the
 >    sample telemetry unmatched so dark vessels show up. Add `ground_station/ais_connector.py`
 >    with an optional AISStream.io websocket fetch (API key from env var `AISSTREAM_API_KEY`,
@@ -42,7 +41,7 @@
 > 5. `tests/test_ground_analytics.py` (pytest): every alert ≤ 160 chars, dark vessels detected
 >    from sample data, utilization math correct.
 
-> Packet v2: up to 16 ports and a few hundred vessels per packet (< 200 KB), so the map
+> Packet v2: up to 60 ports and ~740 vessels per packet (< 200 KB), so the map
 > should cluster markers or filter by port.
 
 ## Done when

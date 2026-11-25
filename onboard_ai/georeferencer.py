@@ -6,9 +6,11 @@ length / tonnage, measures cross-shore distance and tags each detection as one o
 
 Coastline model
 ---------------
-For each port the shoreline is approximated as the meridian through the landward edge of its
-``berth_bbox`` (east edge on the WEST coast, west edge on the EAST coast). Distance from shore
-is the seaward east-west distance from that meridian. This matches the simulator's scene
+For WEST / EAST coast ports the shoreline is approximated as the meridian through the landward
+edge of its ``berth_bbox`` (east edge on the WEST coast, west edge on the EAST coast). Distance
+from shore is the seaward east-west distance from that meridian. ISLAND ports are modelled as a
+compact island (1.6 x 6 km) just east of the harbour, with the quay on its western shore;
+distance from shore is the distance from that island. This matches the simulator's scene
 geometry exactly and is accurate to a few km for real scenes near the configured ports.
 """
 from __future__ import annotations
@@ -27,6 +29,11 @@ EARTH_RADIUS_KM = 6371.0088
 COASTAL_ZONE_KM = 50.0
 EEZ_LIMIT_KM = 370.0
 KNOT_KMH = 1.852
+
+# ISLAND ports (Lakshadweep, Andaman & Nicobar): a compact island east of the harbour point.
+ISLAND_QUAY_OFFSET_KM = 0.3     # quay / western shore, east of the harbour point
+ISLAND_HALF_WIDTH_KM = 0.8      # island half-width (east-west)
+ISLAND_HALF_LENGTH_KM = 3.0     # island half-length (north-south)
 
 # Typical service speeds used for ETA estimates (knots).
 SERVICE_SPEED_KN = {"FISHING_BOAT": 7.0, "FERRY": 14.0, "CARGO_VESSEL": 11.0}
@@ -53,15 +60,32 @@ def port_code(port_id: str) -> str:
     return port_id.split("-", 1)[-1]
 
 
+def _km_per_deg_lon(lat: float) -> float:
+    return M_PER_DEG_LAT / 1000.0 * math.cos(math.radians(lat))
+
+
 def coastline_lon(port: dict) -> float:
-    """Longitude of the modelled shoreline (landward edge of the berth box)."""
+    """Longitude of the modelled shoreline / quay.
+
+    WEST / EAST coasts: the landward edge of the berth box. ISLAND ports: the island's western
+    shore, :data:`ISLAND_QUAY_OFFSET_KM` east of the harbour point.
+    """
     min_lon, _, max_lon, _ = port["berth_bbox"]
-    return max_lon if port["coast"] == "WEST" else min_lon
+    coast = port["coast"]
+    if coast == "ISLAND":
+        return port["lon"] + ISLAND_QUAY_OFFSET_KM / _km_per_deg_lon(port["lat"])
+    return min_lon if coast == "EAST" else max_lon
 
 
 def seaward_lon_sign(port: dict) -> int:
-    """-1 if the sea lies to the west of the coast, +1 if it lies to the east."""
-    return -1 if port["coast"] == "WEST" else 1
+    """+1 if the open sea used for the approach lies east of the quay (EAST coast), else -1."""
+    return 1 if port["coast"] == "EAST" else -1
+
+
+def island_center(port: dict) -> tuple[float, float]:
+    """Centre of the modelled island (ISLAND ports): east of the quay by its half-width."""
+    lat = port["lat"]
+    return lat, coastline_lon(port) + ISLAND_HALF_WIDTH_KM / _km_per_deg_lon(lat)
 
 
 @dataclass(frozen=True)
@@ -109,10 +133,19 @@ def in_bbox(lat: float, lon: float, bbox: list[float]) -> bool:
 
 
 def distance_from_shore_km(port: dict, lat: float, lon: float) -> float:
-    """Seaward cross-shore distance from the port's modelled coastline (0 if landward)."""
-    km_per_deg_lon = M_PER_DEG_LAT / 1000.0 * math.cos(math.radians(lat))
+    """Distance from the port's modelled shore (0 if on land).
+
+    Coasts: seaward cross-shore distance from the coastline meridian. Islands: distance from
+    the island, approximated as a rectangle of ``2 x ISLAND_HALF_WIDTH_KM`` (east-west) by
+    ``2 x ISLAND_HALF_LENGTH_KM`` (north-south).
+    """
+    if port["coast"] == "ISLAND":
+        c_lat, c_lon = island_center(port)
+        dx = abs(lon - c_lon) * _km_per_deg_lon(lat)
+        dy = abs(lat - c_lat) * M_PER_DEG_LAT / 1000.0
+        return math.hypot(max(dx - ISLAND_HALF_WIDTH_KM, 0.0), max(dy - ISLAND_HALF_LENGTH_KM, 0.0))
     seaward_deg = (lon - coastline_lon(port)) * seaward_lon_sign(port)
-    return max(0.0, seaward_deg * km_per_deg_lon)
+    return max(0.0, seaward_deg * _km_per_deg_lon(lat))
 
 
 def classify_zone(port: dict, lat: float, lon: float, dist_km: float) -> str:
