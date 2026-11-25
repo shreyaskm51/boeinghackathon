@@ -1,0 +1,191 @@
+"""Tests for the onboard edge AI pipeline (Track B, Person A)."""
+from __future__ import annotations
+
+import io
+import json
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from onboard_ai.cfar_onnx_detector import (
+    CLASS_NAMES,
+    N_FEATURES,
+    MODEL_PATH,
+    detect_targets,
+    get_classifier,
+)
+from onboard_ai.edge_pipeline import PACKET_LIMIT_BYTES, run_pass
+from onboard_ai.georeferencer import GeoTransform, classify_zone, get_port, georeference
+from onboard_ai.sar_simulator import simulate_pass, to_display_uint8
+
+ROOT = Path(__file__).resolve().parents[1]
+SCHEMA = json.loads((ROOT / "contracts" / "telemetry_schema.json").read_text(encoding="utf-8"))
+PORT_IDS = ["IN-KRW", "IN-BEY", "IN-KAK", "IN-GOP"]
+
+
+def _validate(packet: dict) -> None:
+    jsonschema = pytest.importorskip("jsonschema")
+    jsonschema.validate(packet, SCHEMA)
+
+
+@pytest.fixture(scope="module")
+def sweep(tmp_path_factory):
+    out = tmp_path_factory.mktemp("telemetry") / "latest_telemetry.json"
+    return run_pass(None, "MODERATE", "18:00", output_path=str(out), seed=42), out
+
+
+# ------------------------------------------------------------------ packet contract
+
+def test_full_sweep_packet_matches_contract(sweep):
+    result, _ = sweep
+    _validate(result["telemetry"])
+    assert [p["port_id"] for p in result["telemetry"]["ports_summary"]] == PORT_IDS
+
+
+def test_packet_file_is_under_3kb_and_header_is_truthful(sweep):
+    result, out = sweep
+    raw = out.read_bytes()
+    assert len(raw) < PACKET_LIMIT_BYTES
+    header = json.loads(raw)["telemetry_header"]
+    assert header["downlinked_json_size_kb"] == pytest.approx(len(raw) / 1024, abs=0.011)
+    assert header["bandwidth_saved_pct"] > 99.0
+    assert header["raw_scene_size_mb"] > header["cropped_roi_size_mb"] > 0
+
+
+def test_vessel_records_are_consistent(sweep):
+    result, _ = sweep
+    packet = result["telemetry"]
+    assert packet["vessels"], "budget should leave room for at least one vessel"
+    ids = [v["vessel_id"] for v in packet["vessels"]]
+    assert len(ids) == len(set(ids))
+    for v in packet["vessels"]:
+        assert v["ais_matched"] is False  # ground station owns AIS matching
+        assert 0 <= v["distance_from_shore_km"] <= 370
+        if v["zone"] == "OFFSHORE_EEZ":
+            assert v["distance_from_shore_km"] > 50
+
+
+def test_run_pass_returns_previews_and_stats(sweep):
+    result, _ = sweep
+    raw, overlay = result["raw_preview"], result["overlay_preview"]
+    assert raw.dtype == np.uint8 and raw.ndim == 2 and max(raw.shape) <= 512
+    assert overlay.shape == (*raw.shape, 3)
+    assert result["stats"]["vessels_detected"] >= len(result["telemetry"]["vessels"])
+    for chip in result["alert_chips"]:
+        assert chip[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_default_output_path_is_repo_relative(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)  # must not depend on the working directory
+    result = run_pass("IN-GOP", "CALM", "12:00", output_path=str(tmp_path / "pkt.json"), seed=1)
+    assert (tmp_path / "pkt.json").exists()
+    _validate(result["telemetry"])
+
+
+@pytest.mark.parametrize("sea_state", ["Clear Calm", "MODERATE", "Monsoon Rough Sea"])
+def test_every_sea_state_produces_valid_packet(tmp_path, sea_state):
+    result = run_pass("IN-KAK", sea_state, "06:00", output_path=str(tmp_path / "p.json"), seed=3)
+    _validate(result["telemetry"])
+
+
+def test_invalid_inputs_raise(tmp_path):
+    with pytest.raises(ValueError):
+        run_pass("IN-XXX", output_path=str(tmp_path / "p.json"))
+    with pytest.raises(ValueError):
+        run_pass("IN-KRW", pass_time_ist="09:15", output_path=str(tmp_path / "p.json"))
+
+
+# ------------------------------------------------------------------ detection quality
+
+def _match(dets_labels, truth_vessel):
+    return [lab for d, lab in dets_labels
+            if (d.px - truth_vessel.px) ** 2 + (d.py - truth_vessel.py) ** 2 < (3 + truth_vessel.length_m / 20) ** 2]
+
+
+def test_calm_sea_detects_all_ships_without_land_false_alarms():
+    clf = get_classifier()
+    tile = simulate_pass("IN-KAK", "CALM", "12:00", seed=5).tiles[0]
+    dets = detect_targets(tile.image, tile.land_mask)
+    labels, _ = clf.predict(np.stack([d.features() for d in dets]))
+    kept = [(d, lab) for d, lab in zip(dets, labels) if lab != "CLUTTER"]
+
+    ships = [v for v in tile.truth if v.vessel_type != "FISHING_BOAT"]
+    assert ships
+    found = sum(bool(_match(kept, v)) for v in ships)
+    assert found / len(ships) >= 0.95
+    correct = sum(v.vessel_type in _match(kept, v) for v in ships)
+    assert correct / len(ships) >= 0.9
+    # quay cranes, breakwater lights and buildings must never become vessels
+    assert not any(tile.land_mask[int(round(d.py)), int(round(d.px))] for d, _ in kept)
+
+
+def test_land_mask_suppresses_bright_land():
+    img = np.full((256, 256), 100, dtype=np.uint16)
+    land = np.zeros_like(img, dtype=bool)
+    land[:, 200:] = True
+    img[50, 210] = img[120, 230] = 50000  # cranes on land
+    img[180, 100] = 9000                  # a real ship at sea
+    dets = detect_targets(img, land)
+    assert len(dets) == 1 and abs(dets[0].px - 100) < 1 and abs(dets[0].py - 180) < 1
+
+
+# ------------------------------------------------------------------ ONNX model
+
+def test_onnx_model_auto_generated_and_outputs_probabilities():
+    clf = get_classifier()
+    assert MODEL_PATH.exists()
+    assert clf.session.get_inputs()[0].shape[-1] == N_FEATURES
+    names, conf = clf.predict(np.zeros((3, N_FEATURES), dtype=np.float32))
+    assert len(names) == 3 and all(n in CLASS_NAMES for n in names)
+    assert np.all((conf >= 0) & (conf <= 1))
+
+
+# ------------------------------------------------------------------ georeferencing
+
+def test_geotransform_roundtrip():
+    geo = GeoTransform.anchored(14.8, 74.1, 1500, 1024, 10.0)
+    lat, lon = geo.pixel_to_latlon(321.5, 1777.25)
+    px, py = geo.latlon_to_pixel(lat, lon)
+    assert px == pytest.approx(321.5) and py == pytest.approx(1777.25)
+    assert geo.pixel_to_latlon(1500, 1024) == pytest.approx((14.8, 74.1))
+
+
+@pytest.mark.parametrize("port_id", PORT_IDS)
+def test_zone_tagging_uses_port_polygons(port_id):
+    port = get_port(port_id)
+    for key, zone in (("berth_bbox", "BERTH"), ("anchorage_bbox", "ANCHORAGE_QUEUE")):
+        min_lon, min_lat, max_lon, max_lat = port[key]
+        assert classify_zone(port, (min_lat + max_lat) / 2, (min_lon + max_lon) / 2, 1.0) == zone
+    assert classify_zone(port, port["lat"] + 0.5, port["lon"], 20.0) == "COASTAL_APPROACH"
+    assert classify_zone(port, port["lat"] + 0.5, port["lon"], 120.0) == "OFFSHORE_EEZ"
+
+
+def test_georeference_rejects_targets_beyond_eez():
+    port = get_port("IN-KRW")
+    geo = GeoTransform.anchored(port["lat"], port["lon"] - 4.0, 0, 0, 10.0)  # ~430 km offshore
+    assert georeference(0, 0, 100.0, geo, port, "CARGO_VESSEL", 0.9) is None
+
+
+# ------------------------------------------------------------------ uploads
+
+def test_uploaded_png_runs_through_pipeline(tmp_path):
+    from PIL import Image
+
+    tile = simulate_pass("IN-BEY", "CALM", "12:00", seed=9).tiles[0]
+    buf = io.BytesIO()
+    Image.fromarray(to_display_uint8(tile.image[512:1536, 1000:2048])).save(buf, format="PNG")
+    result = run_pass("IN-BEY", "CALM", "12:00", uploaded_image=buf.getvalue(),
+                      output_path=str(tmp_path / "upload.json"))
+    _validate(result["telemetry"])
+    assert result["stats"]["source"] == "UPLOAD"
+    assert result["stats"]["vessels_detected"] > 0
+
+
+def test_uploaded_npy_runs_through_pipeline(tmp_path):
+    tile = simulate_pass("IN-GOP", "MODERATE", "18:00", seed=4).tiles[0]
+    buf = io.BytesIO()
+    np.save(buf, tile.image)
+    result = run_pass("IN-GOP", uploaded_image=buf.getvalue(), output_path=str(tmp_path / "npy.json"))
+    _validate(result["telemetry"])
+    assert result["stats"]["vessels_detected"] > 0
