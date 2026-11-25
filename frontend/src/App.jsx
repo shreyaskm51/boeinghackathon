@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import MaritimeMap from "./components/MaritimeMap.jsx";
 import RealDataPanel from "./components/RealDataPanel.jsx";
-import TradeNowcastChart from "./components/TradeNowcastChart.jsx";
 
 const CONGESTION_COLORS = {
   NORMAL: "#10B981",
@@ -455,11 +454,11 @@ export default function App() {
           />
         ) : null}
 
-        {/* PANEL 3: Port Operations, Trade Nowcasting & SMS Alert Center */}
+        {/* PANEL 3: Port Operations & SMS Alert Center */}
         <section className="panel" aria-labelledby="ops-heading">
           <div className="panel-header">
             <h2 id="ops-heading">
-              3. Small-Port Operations, Trade Nowcasting &amp; SMS Alert Center
+              3. Small-Port Operations &amp; SMS Alert Center
             </h2>
           </div>
 
@@ -557,11 +556,6 @@ export default function App() {
             </div>
 
             <div>
-              <h3 style={{ margin: "0 0 0.75rem 0", fontSize: "0.95rem" }}>
-                Multi-Pass Regional Trade Nowcasting (₹ Crores)
-              </h3>
-              <TradeNowcastChart rows={data.nowcast} />
-
               <div
                 style={{
                   display: "flex",
