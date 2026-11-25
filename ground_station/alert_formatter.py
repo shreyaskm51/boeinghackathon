@@ -68,6 +68,8 @@ def format_port_alert(
     fish_dist = _max_fishing_distance_km(port_id, vessels)
 
     # Real Sentinel-1 data: a port without a recent scene was not observed at all.
+    if port_summary.get("data_source") == "NOT_FETCHED":
+        return f"EDGEPORT ALERT [{port_id}]: Not observed yet, fetch a satellite pass."[:max_length]
     if port_summary.get("data_source") == "NO_SCENE":
         return f"EDGEPORT ALERT [{port_id}]: No recent satellite pass, port status unknown."[:max_length]
 

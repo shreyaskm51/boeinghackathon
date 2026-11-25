@@ -6,6 +6,7 @@ import base64
 import copy
 import io
 import json
+from datetime import datetime, timezone
 import mimetypes
 import re
 import threading
@@ -138,6 +139,15 @@ def generate_ground_preview_images(
     return raw_arr, np.asarray(overlay_img, dtype=np.uint8)
 
 
+def _age_days(iso: str) -> int | None:
+    """Whole days from a UTC timestamp to now (None if unparseable)."""
+    try:
+        when = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return max(0, (datetime.now(timezone.utc) - when).days)
+
+
 class EdgePortState:
     """In-memory ground station state holding active telemetry packet and source label."""
 
@@ -180,6 +190,9 @@ class EdgePortState:
                     "fetched_utc": res.get("fetched_utc"),
                     "raw_preview_url": f"/api/real/preview/{pid}/raw.png",
                     "overlay_preview_url": f"/api/real/preview/{pid}/overlay.png",
+                    # georeferences the radar image on the map, and drives the "old pass" warning
+                    "bounds": res.get("window", {}).get("bounds"),
+                    "age_days": _age_days(res["scene"]["datetime"]),
                 })
             info[pid] = entry
         return info

@@ -138,3 +138,23 @@ def test_server_real_endpoints(real_cache, monkeypatch):
     assert payload["data_source"] == "real" and payload["kpis"]["total_dark_vessels"] == 0
     assert payload["real_data"]["ports"]["IN-KRW"]["overlay_preview_url"] == "/api/real/preview/IN-KRW/overlay.png"
     assert state.build_dashboard_payload(source="simulated")["data_source"] == "simulated"
+
+
+def test_unfetched_ports_are_marked_not_fetched(real_cache):
+    _cache(real_cache, _fake_result("IN-KRW", 2))
+    (rs.REAL_DIR / "IN-KVT.json").write_text(json.dumps({"port_id": "IN-KVT", "status": "NO_SCENE"}), encoding="utf-8")
+    packet = rs.build_real_packet()
+    by_id = {p["port_id"]: p for p in packet["ports_summary"]}
+    assert by_id["IN-KVT"]["data_source"] == "NO_SCENE"
+    assert by_id["IN-PNJ"]["data_source"] == "NOT_FETCHED"
+    assert by_id["IN-KRW"]["data_source"] == "SENTINEL-1"
+
+
+def test_real_ports_info_has_bounds_and_age(real_cache):
+    api = pytest.importorskip("ground_station.api_server")
+    res = _fake_result("IN-KRW", 1, "2026-11-20T00:55:31Z")
+    res["window"]["bounds"] = [73.9, 14.7, 74.2, 14.9]
+    _cache(real_cache, res)
+    info = api.EdgePortState().real_ports_info()["IN-KRW"]
+    assert info["bounds"] == [73.9, 14.7, 74.2, 14.9]
+    assert isinstance(info["age_days"], int) and info["age_days"] >= 0

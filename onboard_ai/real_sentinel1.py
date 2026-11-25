@@ -284,9 +284,10 @@ def load_cached(port_id: str) -> dict | None:
 
 # --------------------------------------------------------------------------- packet assembly
 
-def _empty_summary(port: dict) -> dict:
+def _empty_summary(port: dict, data_source: str) -> dict:
+    """Summary for a port without a usable scene: "NOT_FETCHED" (no cache) or "NO_SCENE"."""
     s = summarize_port(port, [])
-    s.update({"observed_utc": None, "data_source": "NO_SCENE"})
+    s.update({"observed_utc": None, "data_source": data_source})
     return s
 
 
@@ -300,7 +301,7 @@ def build_real_packet(output_path: str | Path | None = None) -> dict:
     for port in ports:
         res = load_cached(port["port_id"])
         if not res or res.get("status") != "OK":
-            summaries.append(_empty_summary(port))
+            summaries.append(_empty_summary(port, "NOT_FETCHED" if res is None else "NO_SCENE"))
             per_port.append([])
             continue
         n_ok += 1

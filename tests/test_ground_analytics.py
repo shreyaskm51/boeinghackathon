@@ -328,3 +328,9 @@ def test_alert_wording_for_real_scenes() -> None:
     # simulated / AIS-checked alerts keep the original wording
     simulated = format_port_alert({**summary, "observed_utc": None, "data_source": None}, [])
     assert "AIS" not in simulated and simulated.startswith("EDGEPORT ALERT [IN-RDI]: ")
+
+
+def test_alert_for_not_fetched_port() -> None:
+    alert = format_port_alert({"port_id": "IN-PNJ", "max_berths": 5, "data_source": "NOT_FETCHED", "counts": {}}, [],
+                              ais_checked=False)
+    assert alert == "EDGEPORT ALERT [IN-PNJ]: Not observed yet, fetch a satellite pass."
