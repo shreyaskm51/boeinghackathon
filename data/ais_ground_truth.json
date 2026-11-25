@@ -1,0 +1,1257 @@
+{
+  "_note": "Simulated AIS / ReALCRaft transponder feed across 60 Indian non-major ports (Person B - Track A). Intentionally leaves VSL-KAK-001 and VSL-GOP-001 unmatched.",
+  "feed_source": "SIMULATED_INDIAN_COASTAL_AIS_REALCRAFT",
+  "generated_utc": "2026-11-25T12:29:45Z",
+  "records": [
+    {
+      "mmsi": "419001201",
+      "name": "MV KARWAR QUEEN",
+      "type": "FERRY",
+      "port_id": "IN-KRW",
+      "lat": 14.7918,
+      "lon": 74.0851,
+      "sog_knots": 14.2,
+      "timestamp": "2026-11-25T12:29:10Z"
+    },
+    {
+      "mmsi": "419001202",
+      "name": "MV KONKAN COASTER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KRW",
+      "lat": 14.8015,
+      "lon": 74.112,
+      "sog_knots": 0.1,
+      "timestamp": "2026-11-25T12:28:40Z"
+    },
+    {
+      "mmsi": "419001203",
+      "name": "IFB MATSYA KANYA",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KRW",
+      "lat": 14.775,
+      "lon": 74.051,
+      "sog_knots": 7.5,
+      "timestamp": "2026-11-25T12:29:30Z"
+    },
+    {
+      "mmsi": "419001204",
+      "name": "MV UTTARA KANNADA",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KRW",
+      "lat": 14.782,
+      "lon": 74.06,
+      "sog_knots": 0.4,
+      "timestamp": "2026-11-25T12:27:55Z"
+    },
+    {
+      "mmsi": "419002301",
+      "name": "MV LAKSHADWEEP EXPRESS",
+      "type": "FERRY",
+      "port_id": "IN-BEY",
+      "lat": 11.1589,
+      "lon": 75.7728,
+      "sog_knots": 16.0,
+      "timestamp": "2026-11-25T12:29:20Z"
+    },
+    {
+      "mmsi": "419002302",
+      "name": "MV MALABAR TRADER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-BEY",
+      "lat": 11.1635,
+      "lon": 75.801,
+      "sog_knots": 0.0,
+      "timestamp": "2026-11-25T12:28:15Z"
+    },
+    {
+      "mmsi": "419002303",
+      "name": "IFB SAGAR RANI",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-BEY",
+      "lat": 11.148,
+      "lon": 75.749,
+      "sog_knots": 6.8,
+      "timestamp": "2026-11-25T12:29:05Z"
+    },
+    {
+      "mmsi": "419003401",
+      "name": "MV GODAVARI PRIDE",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KAK",
+      "lat": 16.954,
+      "lon": 82.256,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:50Z"
+    },
+    {
+      "mmsi": "419003402",
+      "name": "MV COROMANDEL BULK",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KAK",
+      "lat": 16.942,
+      "lon": 82.352,
+      "sog_knots": 0.5,
+      "timestamp": "2026-11-25T12:27:30Z"
+    },
+    {
+      "mmsi": "419003403",
+      "name": "IFB ANDHRA STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KAK",
+      "lat": 17.001,
+      "lon": 82.31,
+      "sog_knots": 8.1,
+      "timestamp": "2026-11-25T12:29:12Z"
+    },
+    {
+      "mmsi": "419004501",
+      "name": "MV KALINGA CARRIER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-GOP",
+      "lat": 19.3025,
+      "lon": 84.961,
+      "sog_knots": 0.0,
+      "timestamp": "2026-11-25T12:28:00Z"
+    },
+    {
+      "mmsi": "419004502",
+      "name": "MV CHILIKA FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-GOP",
+      "lat": 19.276,
+      "lon": 85.039,
+      "sog_knots": 0.3,
+      "timestamp": "2026-11-25T12:29:18Z"
+    },
+    {
+      "mmsi": "419004503",
+      "name": "IFB ODISHA PEARL",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-GOP",
+      "lat": 19.318,
+      "lon": 85.025,
+      "sog_knots": 7.0,
+      "timestamp": "2026-11-25T12:28:45Z"
+    },
+    {
+      "mmsi": "419100011",
+      "name": "MV MANDVI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-MDV",
+      "lat": 22.835,
+      "lon": 69.3385,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100012",
+      "name": "IFB MANDVI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-MDV",
+      "lat": 22.819,
+      "lon": 69.307,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100021",
+      "name": "MV MUNDRA FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-MND",
+      "lat": 22.746,
+      "lon": 69.6975,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100022",
+      "name": "IFB MUNDRA STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-MND",
+      "lat": 22.73,
+      "lon": 69.666,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100031",
+      "name": "MV OKHA FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-OKH",
+      "lat": 22.477,
+      "lon": 69.0605,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100032",
+      "name": "IFB OKHA STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-OKH",
+      "lat": 22.461,
+      "lon": 69.029,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100041",
+      "name": "MV SIKKA FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-SIK",
+      "lat": 22.439,
+      "lon": 69.8215,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100042",
+      "name": "IFB SIKKA STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-SIK",
+      "lat": 22.423,
+      "lon": 69.79,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100051",
+      "name": "MV BEDI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-BDH",
+      "lat": 22.506,
+      "lon": 70.0255,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100052",
+      "name": "IFB BEDI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-BDH",
+      "lat": 22.49,
+      "lon": 69.994,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100061",
+      "name": "MV PORBANDAR FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-PBD",
+      "lat": 21.639,
+      "lon": 69.5855,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100062",
+      "name": "IFB PORBANDAR STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-PBD",
+      "lat": 21.623,
+      "lon": 69.554,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100071",
+      "name": "MV VERAVAL FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-VRL",
+      "lat": 20.907,
+      "lon": 70.3585,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100072",
+      "name": "IFB VERAVAL STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-VRL",
+      "lat": 20.891,
+      "lon": 70.327,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100081",
+      "name": "MV JAFRABAD FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-JFR",
+      "lat": 20.868,
+      "lon": 71.3615,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100082",
+      "name": "IFB JAFRABAD STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-JFR",
+      "lat": 20.852,
+      "lon": 71.33,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100091",
+      "name": "MV PIPAVAV FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-PPV",
+      "lat": 20.92,
+      "lon": 71.4985,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100092",
+      "name": "IFB PIPAVAV STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-PPV",
+      "lat": 20.904,
+      "lon": 71.467,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100101",
+      "name": "MV BHAVNAGAR FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-BVG",
+      "lat": 21.762,
+      "lon": 72.2175,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100102",
+      "name": "IFB BHAVNAGAR STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-BVG",
+      "lat": 21.746,
+      "lon": 72.186,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100111",
+      "name": "MV DAHEJ FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-DHJ",
+      "lat": 21.707,
+      "lon": 72.5375,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100112",
+      "name": "IFB DAHEJ STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-DHJ",
+      "lat": 21.691,
+      "lon": 72.506,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100121",
+      "name": "MV HAZIRA FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-HZR",
+      "lat": 21.096,
+      "lon": 72.6145,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100122",
+      "name": "IFB HAZIRA STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-HZR",
+      "lat": 21.08,
+      "lon": 72.583,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100131",
+      "name": "MV DIU FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-DIU",
+      "lat": 20.718,
+      "lon": 70.9765,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100132",
+      "name": "IFB DIU STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-DIU",
+      "lat": 20.702,
+      "lon": 70.945,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100141",
+      "name": "MV DAMAN FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-DMN",
+      "lat": 20.417,
+      "lon": 72.8215,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100142",
+      "name": "IFB DAMAN STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-DMN",
+      "lat": 20.401,
+      "lon": 72.79,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100151",
+      "name": "MV DAHANU FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-DHN",
+      "lat": 19.976,
+      "lon": 72.7135,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100152",
+      "name": "IFB DAHANU STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-DHN",
+      "lat": 19.96,
+      "lon": 72.682,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100161",
+      "name": "MV VERSOVA FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-VRV",
+      "lat": 19.143,
+      "lon": 72.7985,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100162",
+      "name": "IFB VERSOVA STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-VRV",
+      "lat": 19.127,
+      "lon": 72.767,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100171",
+      "name": "MV MANDWA-ALIBAG FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-ALN",
+      "lat": 18.808,
+      "lon": 72.8635,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100172",
+      "name": "IFB MANDWA-ALIBAG STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-ALN",
+      "lat": 18.792,
+      "lon": 72.832,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100181",
+      "name": "MV DIGHI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-DGH",
+      "lat": 18.3,
+      "lon": 72.9655,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100182",
+      "name": "IFB DIGHI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-DGH",
+      "lat": 18.284,
+      "lon": 72.934,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100191",
+      "name": "MV JAIGAD FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-JGD",
+      "lat": 17.302,
+      "lon": 73.2075,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100192",
+      "name": "IFB JAIGAD STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-JGD",
+      "lat": 17.286,
+      "lon": 73.176,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100201",
+      "name": "MV RATNAGIRI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-RTN",
+      "lat": 16.997,
+      "lon": 73.2685,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100202",
+      "name": "IFB RATNAGIRI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-RTN",
+      "lat": 16.981,
+      "lon": 73.237,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100211",
+      "name": "MV REDI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-RDI",
+      "lat": 15.748,
+      "lon": 73.6475,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100212",
+      "name": "IFB REDI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-RDI",
+      "lat": 15.732,
+      "lon": 73.616,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100221",
+      "name": "MV PANAJI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-PNJ",
+      "lat": 15.502,
+      "lon": 73.8055,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100222",
+      "name": "IFB PANAJI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-PNJ",
+      "lat": 15.486,
+      "lon": 73.774,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100231",
+      "name": "MV BETUL FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-BLG",
+      "lat": 15.146,
+      "lon": 73.9335,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100232",
+      "name": "IFB BETUL STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-BLG",
+      "lat": 15.13,
+      "lon": 73.902,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100241",
+      "name": "MV BELEKERI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-BLK",
+      "lat": 14.71,
+      "lon": 74.2565,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100242",
+      "name": "IFB BELEKERI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-BLK",
+      "lat": 14.694,
+      "lon": 74.225,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100251",
+      "name": "MV TADADI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-TAD",
+      "lat": 14.525,
+      "lon": 74.3455,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100252",
+      "name": "IFB TADADI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-TAD",
+      "lat": 14.509,
+      "lon": 74.314,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100261",
+      "name": "MV HONNAVAR FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-HNV",
+      "lat": 14.283,
+      "lon": 74.4255,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100262",
+      "name": "IFB HONNAVAR STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-HNV",
+      "lat": 14.267,
+      "lon": 74.394,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100271",
+      "name": "MV BHATKAL FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-BTK",
+      "lat": 13.976,
+      "lon": 74.5335,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100272",
+      "name": "IFB BHATKAL STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-BTK",
+      "lat": 13.96,
+      "lon": 74.502,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100281",
+      "name": "MV MALPE FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-MLP",
+      "lat": 13.351,
+      "lon": 74.6855,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100282",
+      "name": "IFB MALPE STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-MLP",
+      "lat": 13.335,
+      "lon": 74.654,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100291",
+      "name": "MV KASARAGOD FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KSG",
+      "lat": 12.499,
+      "lon": 74.9715,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100292",
+      "name": "IFB KASARAGOD STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KSG",
+      "lat": 12.483,
+      "lon": 74.94,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100301",
+      "name": "MV AZHIKKAL FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-AZK",
+      "lat": 11.95,
+      "lon": 75.2875,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100302",
+      "name": "IFB AZHIKKAL STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-AZK",
+      "lat": 11.934,
+      "lon": 75.256,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100311",
+      "name": "MV PONNANI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-PNN",
+      "lat": 10.787,
+      "lon": 75.9045,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100312",
+      "name": "IFB PONNANI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-PNN",
+      "lat": 10.771,
+      "lon": 75.873,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100321",
+      "name": "MV KOLLAM FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KLM",
+      "lat": 8.888,
+      "lon": 76.5675,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100322",
+      "name": "IFB KOLLAM STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KLM",
+      "lat": 8.872,
+      "lon": 76.536,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100331",
+      "name": "MV NEENDAKARA FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-NDK",
+      "lat": 8.942,
+      "lon": 76.5305,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100332",
+      "name": "IFB NEENDAKARA STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-NDK",
+      "lat": 8.926,
+      "lon": 76.499,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100341",
+      "name": "MV VIZHINJAM FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-VZJ",
+      "lat": 8.382,
+      "lon": 76.9785,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100342",
+      "name": "IFB VIZHINJAM STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-VZJ",
+      "lat": 8.366,
+      "lon": 76.947,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100351",
+      "name": "MV KAVARATTI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KVT",
+      "lat": 10.57,
+      "lon": 72.649,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100352",
+      "name": "IFB KAVARATTI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KVT",
+      "lat": 10.554,
+      "lon": 72.673,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100361",
+      "name": "MV MINICOY FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-MNC",
+      "lat": 8.288,
+      "lon": 73.06,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100362",
+      "name": "IFB MINICOY STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-MNC",
+      "lat": 8.272,
+      "lon": 73.084,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100371",
+      "name": "MV COLACHEL FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-CLC",
+      "lat": 8.178,
+      "lon": 77.2615,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100372",
+      "name": "IFB COLACHEL STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-CLC",
+      "lat": 8.162,
+      "lon": 77.293,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100381",
+      "name": "MV RAMESWARAM FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-RMP",
+      "lat": 9.292,
+      "lon": 79.3285,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100382",
+      "name": "IFB RAMESWARAM STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-RMP",
+      "lat": 9.276,
+      "lon": 79.36,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100391",
+      "name": "MV THONDI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-TDN",
+      "lat": 9.746,
+      "lon": 79.0305,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100392",
+      "name": "IFB THONDI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-TDN",
+      "lat": 9.73,
+      "lon": 79.062,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100401",
+      "name": "MV NAGAPATTINAM FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-NGP",
+      "lat": 10.765,
+      "lon": 79.8595,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100402",
+      "name": "IFB NAGAPATTINAM STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-NGP",
+      "lat": 10.749,
+      "lon": 79.891,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100411",
+      "name": "MV KARAIKAL FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KKL",
+      "lat": 10.896,
+      "lon": 79.8615,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100412",
+      "name": "IFB KARAIKAL STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KKL",
+      "lat": 10.88,
+      "lon": 79.893,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100421",
+      "name": "MV CUDDALORE FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-CDL",
+      "lat": 11.718,
+      "lon": 79.7865,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100422",
+      "name": "IFB CUDDALORE STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-CDL",
+      "lat": 11.702,
+      "lon": 79.818,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100431",
+      "name": "MV PUDUCHERRY FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-PDY",
+      "lat": 11.922,
+      "lon": 79.8425,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100432",
+      "name": "IFB PUDUCHERRY STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-PDY",
+      "lat": 11.906,
+      "lon": 79.874,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100441",
+      "name": "MV KATTUPALLI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KTP",
+      "lat": 13.31,
+      "lon": 80.3595,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100442",
+      "name": "IFB KATTUPALLI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KTP",
+      "lat": 13.294,
+      "lon": 80.391,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100451",
+      "name": "MV KRISHNAPATNAM FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KSP",
+      "lat": 14.256,
+      "lon": 80.1385,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100452",
+      "name": "IFB KRISHNAPATNAM STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KSP",
+      "lat": 14.24,
+      "lon": 80.17,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100461",
+      "name": "MV VODAREVU FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-VDV",
+      "lat": 15.802,
+      "lon": 80.4325,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100462",
+      "name": "IFB VODAREVU STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-VDV",
+      "lat": 15.786,
+      "lon": 80.464,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100471",
+      "name": "MV NIZAMPATNAM FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-NPT",
+      "lat": 15.903,
+      "lon": 80.6795,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100472",
+      "name": "IFB NIZAMPATNAM STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-NPT",
+      "lat": 15.887,
+      "lon": 80.711,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100481",
+      "name": "MV MACHILIPATNAM FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-MCP",
+      "lat": 16.152,
+      "lon": 81.1965,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100482",
+      "name": "IFB MACHILIPATNAM STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-MCP",
+      "lat": 16.136,
+      "lon": 81.228,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100491",
+      "name": "MV GANGAVARAM FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-GVP",
+      "lat": 17.628,
+      "lon": 83.2515,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100492",
+      "name": "IFB GANGAVARAM STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-GVP",
+      "lat": 17.612,
+      "lon": 83.283,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100501",
+      "name": "MV BHIMUNIPATNAM FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-BMN",
+      "lat": 17.893,
+      "lon": 83.4675,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100502",
+      "name": "IFB BHIMUNIPATNAM STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-BMN",
+      "lat": 17.877,
+      "lon": 83.499,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100511",
+      "name": "MV DHAMRA FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-DHM",
+      "lat": 20.8,
+      "lon": 86.9785,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100512",
+      "name": "IFB DHAMRA STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-DHM",
+      "lat": 20.784,
+      "lon": 87.01,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100521",
+      "name": "MV BALASORE FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-BLR",
+      "lat": 21.449,
+      "lon": 87.0485,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100522",
+      "name": "IFB BALASORE STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-BLR",
+      "lat": 21.433,
+      "lon": 87.08,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100531",
+      "name": "MV SAGAR FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-SGR",
+      "lat": 21.65,
+      "lon": 88.0725,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100532",
+      "name": "IFB SAGAR STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-SGR",
+      "lat": 21.634,
+      "lon": 88.104,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100541",
+      "name": "MV KULPI FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-KLD",
+      "lat": 22.088,
+      "lon": 88.2515,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100542",
+      "name": "IFB KULPI STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-KLD",
+      "lat": 22.072,
+      "lon": 88.283,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100551",
+      "name": "MV PORT FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-PBL",
+      "lat": 11.686,
+      "lon": 92.732,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100552",
+      "name": "IFB PORT STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-PBL",
+      "lat": 11.67,
+      "lon": 92.756,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    },
+    {
+      "mmsi": "419100561",
+      "name": "MV CAMPBELL FEEDER",
+      "type": "CARGO_VESSEL",
+      "port_id": "IN-CMP",
+      "lat": 7.015,
+      "lon": 93.936,
+      "sog_knots": 0.2,
+      "timestamp": "2026-11-25T12:28:30Z"
+    },
+    {
+      "mmsi": "419100562",
+      "name": "IFB CAMPBELL STAR",
+      "type": "FISHING_BOAT",
+      "port_id": "IN-CMP",
+      "lat": 6.999,
+      "lon": 93.96,
+      "sog_knots": 7.4,
+      "timestamp": "2026-11-25T12:29:15Z"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "_note": "Shared file. bbox format = [min_lon, min_lat, max_lon, max_lat] in WGS84. Berth/anchorage boxes and the 12 ports added after the first 4 use approximate harbour coordinates (hackathon values, verify before operational use); eez_corridor_bbox spans roughly 0-370 km seaward.",
+  "_note": "60 Indian non-major/regional ports across all coastal states & islands. bbox format = [min_lon, min_lat, max_lon, max_lat] in WGS84.",
   "monitoring_limit_km": 370,
   "coastal_zone_km": 50,
   "ports": [
@@ -12,9 +12,24 @@
       "lon": 74.118,
       "max_berths": 6,
       "operational_profile": "West coast feeder & fishing hub",
-      "berth_bbox": [74.1, 14.79, 74.125, 14.812],
-      "anchorage_bbox": [74.03, 14.76, 74.09, 14.815],
-      "eez_corridor_bbox": [70.65, 13.1, 74.1, 16.5]
+      "berth_bbox": [
+        74.1,
+        14.79,
+        74.125,
+        14.812
+      ],
+      "anchorage_bbox": [
+        74.03,
+        14.76,
+        74.09,
+        14.815
+      ],
+      "eez_corridor_bbox": [
+        70.65,
+        13.1,
+        74.1,
+        16.5
+      ]
     },
     {
       "port_id": "IN-BEY",
@@ -25,9 +40,24 @@
       "lon": 75.803,
       "max_berths": 5,
       "operational_profile": "Coastal cargo, Lakshadweep ferry & fishing",
-      "berth_bbox": [75.792, 11.155, 75.81, 11.172],
-      "anchorage_bbox": [75.73, 11.135, 75.785, 11.185],
-      "eez_corridor_bbox": [72.4, 9.5, 75.79, 12.83]
+      "berth_bbox": [
+        75.792,
+        11.155,
+        75.81,
+        11.172
+      ],
+      "anchorage_bbox": [
+        75.73,
+        11.135,
+        75.785,
+        11.185
+      ],
+      "eez_corridor_bbox": [
+        72.4,
+        9.5,
+        75.79,
+        12.83
+      ]
     },
     {
       "port_id": "IN-KAK",
@@ -38,9 +68,24 @@
       "lon": 82.265,
       "max_berths": 10,
       "operational_profile": "East coast agri-export & coastal shipping",
-      "berth_bbox": [82.24, 16.94, 82.275, 16.975],
-      "anchorage_bbox": [82.29, 16.93, 82.37, 17.01],
-      "eez_corridor_bbox": [82.28, 15.3, 85.75, 18.62]
+      "berth_bbox": [
+        82.24,
+        16.94,
+        82.275,
+        16.975
+      ],
+      "anchorage_bbox": [
+        82.29,
+        16.93,
+        82.37,
+        17.01
+      ],
+      "eez_corridor_bbox": [
+        82.28,
+        15.3,
+        85.75,
+        18.62
+      ]
     },
     {
       "port_id": "IN-GOP",
@@ -51,165 +96,1592 @@
       "lon": 84.962,
       "max_berths": 6,
       "operational_profile": "Regional bulk & coastal feeder port",
-      "berth_bbox": [84.952, 19.294, 84.972, 19.312],
-      "anchorage_bbox": [84.985, 19.27, 85.05, 19.325],
-      "eez_corridor_bbox": [84.975, 17.64, 88.5, 20.97]
+      "berth_bbox": [
+        84.952,
+        19.294,
+        84.972,
+        19.312
+      ],
+      "anchorage_bbox": [
+        84.985,
+        19.27,
+        85.05,
+        19.325
+      ],
+      "eez_corridor_bbox": [
+        84.975,
+        17.64,
+        88.5,
+        20.97
+      ]
+    },
+    {
+      "port_id": "IN-MDV",
+      "port_name": "Mandvi Port",
+      "state": "Gujarat",
+      "coast": "WEST",
+      "lat": 22.831,
+      "lon": 69.349,
+      "max_berths": 4,
+      "operational_profile": "Kutch coastal dhows & fishing harbour",
+      "berth_bbox": [
+        69.335,
+        22.821,
+        69.363,
+        22.841
+      ],
+      "anchorage_bbox": [
+        69.264,
+        22.799,
+        69.327,
+        22.857
+      ],
+      "eez_corridor_bbox": [
+        65.899,
+        21.181,
+        69.331,
+        24.481
+      ]
+    },
+    {
+      "port_id": "IN-MND",
+      "port_name": "Mundra Regional Jetty",
+      "state": "Gujarat",
+      "coast": "WEST",
+      "lat": 22.742,
+      "lon": 69.708,
+      "max_berths": 9,
+      "operational_profile": "West coast container & bulk feeder",
+      "berth_bbox": [
+        69.694,
+        22.732,
+        69.722,
+        22.752
+      ],
+      "anchorage_bbox": [
+        69.623,
+        22.71,
+        69.686,
+        22.768
+      ],
+      "eez_corridor_bbox": [
+        66.258,
+        21.092,
+        69.69,
+        24.392
+      ]
+    },
+    {
+      "port_id": "IN-OKH",
+      "port_name": "Okha Port",
+      "state": "Gujarat",
+      "coast": "WEST",
+      "lat": 22.473,
+      "lon": 69.071,
+      "max_berths": 6,
+      "operational_profile": "Saurashtra fishing & coastal ferry terminal",
+      "berth_bbox": [
+        69.057,
+        22.463,
+        69.085,
+        22.483
+      ],
+      "anchorage_bbox": [
+        68.986,
+        22.441,
+        69.049,
+        22.499
+      ],
+      "eez_corridor_bbox": [
+        65.621,
+        20.823,
+        69.053,
+        24.123
+      ]
+    },
+    {
+      "port_id": "IN-SIK",
+      "port_name": "Sikka Port",
+      "state": "Gujarat",
+      "coast": "WEST",
+      "lat": 22.435,
+      "lon": 69.832,
+      "max_berths": 8,
+      "operational_profile": "Gulf of Kutch liquid & coastal cargo",
+      "berth_bbox": [
+        69.818,
+        22.425,
+        69.846,
+        22.445
+      ],
+      "anchorage_bbox": [
+        69.747,
+        22.403,
+        69.81,
+        22.461
+      ],
+      "eez_corridor_bbox": [
+        66.382,
+        20.785,
+        69.814,
+        24.085
+      ]
+    },
+    {
+      "port_id": "IN-BDH",
+      "port_name": "Bedi Port",
+      "state": "Gujarat",
+      "coast": "WEST",
+      "lat": 22.502,
+      "lon": 70.036,
+      "max_berths": 6,
+      "operational_profile": "Agri-bulk & salt export anchorage",
+      "berth_bbox": [
+        70.022,
+        22.492,
+        70.05,
+        22.512
+      ],
+      "anchorage_bbox": [
+        69.951,
+        22.47,
+        70.014,
+        22.528
+      ],
+      "eez_corridor_bbox": [
+        66.586,
+        20.852,
+        70.018,
+        24.152
+      ]
     },
     {
       "port_id": "IN-PBD",
       "port_name": "Porbandar Port",
       "state": "Gujarat",
       "coast": "WEST",
-      "lat": 21.632,
-      "lon": 69.595,
-      "max_berths": 5,
-      "operational_profile": "Gujarat coastal cargo & fishing harbour",
-      "berth_bbox": [69.576, 21.621, 69.602, 21.643],
-      "anchorage_bbox": [69.505, 21.602, 69.568, 21.657],
-      "eez_corridor_bbox": [66.026, 19.962, 69.602, 22.3]
+      "lat": 21.635,
+      "lon": 69.596,
+      "max_berths": 6,
+      "operational_profile": "All-weather Saurashtra fishing & bulk port",
+      "berth_bbox": [
+        69.582,
+        21.625,
+        69.61,
+        21.645
+      ],
+      "anchorage_bbox": [
+        69.511,
+        21.603,
+        69.574,
+        21.661
+      ],
+      "eez_corridor_bbox": [
+        66.146,
+        19.985,
+        69.578,
+        23.285
+      ]
     },
     {
       "port_id": "IN-VRL",
-      "port_name": "Veraval Fishing Harbour",
+      "port_name": "Veraval Port",
       "state": "Gujarat",
       "coast": "WEST",
-      "lat": 20.91,
-      "lon": 70.365,
-      "max_berths": 4,
-      "operational_profile": "India's largest fishing harbour, coastal cargo",
-      "berth_bbox": [70.346, 20.901, 70.372, 20.919],
-      "anchorage_bbox": [70.276, 20.88, 70.338, 20.935],
-      "eez_corridor_bbox": [66.814, 19.24, 70.372, 22.58]
+      "lat": 20.903,
+      "lon": 70.369,
+      "max_berths": 7,
+      "operational_profile": "Major mechanized trawler & seafood export hub",
+      "berth_bbox": [
+        70.355,
+        20.893,
+        70.383,
+        20.913
+      ],
+      "anchorage_bbox": [
+        70.284,
+        20.871,
+        70.347,
+        20.929
+      ],
+      "eez_corridor_bbox": [
+        66.919,
+        19.253,
+        70.351,
+        22.553
+      ]
     },
     {
-      "port_id": "IN-DIG",
+      "port_id": "IN-JFR",
+      "port_name": "Jafrabad Port",
+      "state": "Gujarat",
+      "coast": "WEST",
+      "lat": 20.864,
+      "lon": 71.372,
+      "max_berths": 5,
+      "operational_profile": "Clinker, salt & coastal fishing harbour",
+      "berth_bbox": [
+        71.358,
+        20.854,
+        71.386,
+        20.874
+      ],
+      "anchorage_bbox": [
+        71.287,
+        20.832,
+        71.35,
+        20.89
+      ],
+      "eez_corridor_bbox": [
+        67.922,
+        19.214,
+        71.354,
+        22.514
+      ]
+    },
+    {
+      "port_id": "IN-PPV",
+      "port_name": "Pipavav Regional Terminal",
+      "state": "Gujarat",
+      "coast": "WEST",
+      "lat": 20.916,
+      "lon": 71.509,
+      "max_berths": 8,
+      "operational_profile": "Saurashtra feeder container & bulk terminal",
+      "berth_bbox": [
+        71.495,
+        20.906,
+        71.523,
+        20.926
+      ],
+      "anchorage_bbox": [
+        71.424,
+        20.884,
+        71.487,
+        20.942
+      ],
+      "eez_corridor_bbox": [
+        68.059,
+        19.266,
+        71.491,
+        22.566
+      ]
+    },
+    {
+      "port_id": "IN-BVG",
+      "port_name": "Bhavnagar Port",
+      "state": "Gujarat",
+      "coast": "WEST",
+      "lat": 21.758,
+      "lon": 72.228,
+      "max_berths": 5,
+      "operational_profile": "Gulf of Khambhat tidal cargo & ferry hub",
+      "berth_bbox": [
+        72.214,
+        21.748,
+        72.242,
+        21.768
+      ],
+      "anchorage_bbox": [
+        72.143,
+        21.726,
+        72.206,
+        21.784
+      ],
+      "eez_corridor_bbox": [
+        68.778,
+        20.108,
+        72.21,
+        23.408
+      ]
+    },
+    {
+      "port_id": "IN-DHJ",
+      "port_name": "Dahej Port",
+      "state": "Gujarat",
+      "coast": "WEST",
+      "lat": 21.703,
+      "lon": 72.548,
+      "max_berths": 8,
+      "operational_profile": "Industrial chemical & Ro-Ro ferry terminal",
+      "berth_bbox": [
+        72.534,
+        21.693,
+        72.562,
+        21.713
+      ],
+      "anchorage_bbox": [
+        72.463,
+        21.671,
+        72.526,
+        21.729
+      ],
+      "eez_corridor_bbox": [
+        69.098,
+        20.053,
+        72.53,
+        23.353
+      ]
+    },
+    {
+      "port_id": "IN-HZR",
+      "port_name": "Hazira Port",
+      "state": "Gujarat",
+      "coast": "WEST",
+      "lat": 21.092,
+      "lon": 72.625,
+      "max_berths": 9,
+      "operational_profile": "South Gujarat LNG & coastal feeder terminal",
+      "berth_bbox": [
+        72.611,
+        21.082,
+        72.639,
+        21.102
+      ],
+      "anchorage_bbox": [
+        72.54,
+        21.06,
+        72.603,
+        21.118
+      ],
+      "eez_corridor_bbox": [
+        69.175,
+        19.442,
+        72.607,
+        22.742
+      ]
+    },
+    {
+      "port_id": "IN-DIU",
+      "port_name": "Diu Fishing Harbour",
+      "state": "Daman and Diu",
+      "coast": "WEST",
+      "lat": 20.714,
+      "lon": 70.987,
+      "max_berths": 4,
+      "operational_profile": "Island-edge fishing & coastal craft harbour",
+      "berth_bbox": [
+        70.973,
+        20.704,
+        71.001,
+        20.724
+      ],
+      "anchorage_bbox": [
+        70.902,
+        20.682,
+        70.965,
+        20.74
+      ],
+      "eez_corridor_bbox": [
+        67.537,
+        19.064,
+        70.969,
+        22.364
+      ]
+    },
+    {
+      "port_id": "IN-DMN",
+      "port_name": "Daman Coastal Jetty",
+      "state": "Daman and Diu",
+      "coast": "WEST",
+      "lat": 20.413,
+      "lon": 72.832,
+      "max_berths": 4,
+      "operational_profile": "Coastal trawler & ferry jetty",
+      "berth_bbox": [
+        72.818,
+        20.403,
+        72.846,
+        20.423
+      ],
+      "anchorage_bbox": [
+        72.747,
+        20.381,
+        72.81,
+        20.439
+      ],
+      "eez_corridor_bbox": [
+        69.382,
+        18.763,
+        72.814,
+        22.063
+      ]
+    },
+    {
+      "port_id": "IN-DHN",
+      "port_name": "Dahanu Port",
+      "state": "Maharashtra",
+      "coast": "WEST",
+      "lat": 19.972,
+      "lon": 72.724,
+      "max_berths": 5,
+      "operational_profile": "North Konkan coastal coal & fishing landing",
+      "berth_bbox": [
+        72.71,
+        19.962,
+        72.738,
+        19.982
+      ],
+      "anchorage_bbox": [
+        72.639,
+        19.94,
+        72.702,
+        19.998
+      ],
+      "eez_corridor_bbox": [
+        69.274,
+        18.322,
+        72.706,
+        21.622
+      ]
+    },
+    {
+      "port_id": "IN-VRV",
+      "port_name": "Versova Fishing Harbour",
+      "state": "Maharashtra",
+      "coast": "WEST",
+      "lat": 19.139,
+      "lon": 72.809,
+      "max_berths": 6,
+      "operational_profile": "High-density Mumbai suburban fishing harbour",
+      "berth_bbox": [
+        72.795,
+        19.129,
+        72.823,
+        19.149
+      ],
+      "anchorage_bbox": [
+        72.724,
+        19.107,
+        72.787,
+        19.165
+      ],
+      "eez_corridor_bbox": [
+        69.359,
+        17.489,
+        72.791,
+        20.789
+      ]
+    },
+    {
+      "port_id": "IN-ALN",
+      "port_name": "Mandwa-Alibag Jetty",
+      "state": "Maharashtra",
+      "coast": "WEST",
+      "lat": 18.804,
+      "lon": 72.874,
+      "max_berths": 5,
+      "operational_profile": "High-frequency passenger ferry & catamaran hub",
+      "berth_bbox": [
+        72.86,
+        18.794,
+        72.888,
+        18.814
+      ],
+      "anchorage_bbox": [
+        72.789,
+        18.772,
+        72.852,
+        18.83
+      ],
+      "eez_corridor_bbox": [
+        69.424,
+        17.154,
+        72.856,
+        20.454
+      ]
+    },
+    {
+      "port_id": "IN-DGH",
       "port_name": "Dighi Port",
       "state": "Maharashtra",
       "coast": "WEST",
-      "lat": 18.275,
-      "lon": 72.987,
-      "max_berths": 5,
-      "operational_profile": "Konkan bulk & multipurpose port",
-      "berth_bbox": [72.968, 18.264, 72.994, 18.286],
-      "anchorage_bbox": [72.899, 18.245, 72.961, 18.3],
-      "eez_corridor_bbox": [69.494, 16.605, 72.994, 19.945]
+      "lat": 18.296,
+      "lon": 72.976,
+      "max_berths": 6,
+      "operational_profile": "Konkan multipurpose dry bulk & coastal hub",
+      "berth_bbox": [
+        72.962,
+        18.286,
+        72.99,
+        18.306
+      ],
+      "anchorage_bbox": [
+        72.891,
+        18.264,
+        72.954,
+        18.322
+      ],
+      "eez_corridor_bbox": [
+        69.526,
+        16.646,
+        72.958,
+        19.946
+      ]
     },
     {
-      "port_id": "IN-RTC",
-      "port_name": "Ratnagiri Port",
+      "port_id": "IN-JGD",
+      "port_name": "Jaigad Port",
       "state": "Maharashtra",
       "coast": "WEST",
-      "lat": 16.99,
-      "lon": 73.275,
-      "max_berths": 4,
-      "operational_profile": "Konkan fishing & coastal cargo",
-      "berth_bbox": [73.257, 16.981, 73.282, 16.999],
-      "anchorage_bbox": [73.188, 16.96, 73.249, 17.015],
-      "eez_corridor_bbox": [69.807, 15.32, 73.282, 18.66]
+      "lat": 17.298,
+      "lon": 73.218,
+      "max_berths": 7,
+      "operational_profile": "Deep-draft coastal coal & container feeder",
+      "berth_bbox": [
+        73.204,
+        17.288,
+        73.232,
+        17.308
+      ],
+      "anchorage_bbox": [
+        73.133,
+        17.266,
+        73.196,
+        17.324
+      ],
+      "eez_corridor_bbox": [
+        69.768,
+        15.648,
+        73.2,
+        18.948
+      ]
     },
     {
-      "port_id": "IN-MAL",
+      "port_id": "IN-RTN",
+      "port_name": "Ratnagiri Mirkarwada Port",
+      "state": "Maharashtra",
+      "coast": "WEST",
+      "lat": 16.993,
+      "lon": 73.279,
+      "max_berths": 6,
+      "operational_profile": "Konkan fishing harbour & regional cargo berth",
+      "berth_bbox": [
+        73.265,
+        16.983,
+        73.293,
+        17.003
+      ],
+      "anchorage_bbox": [
+        73.194,
+        16.961,
+        73.257,
+        17.019
+      ],
+      "eez_corridor_bbox": [
+        69.829,
+        15.343,
+        73.261,
+        18.643
+      ]
+    },
+    {
+      "port_id": "IN-RDI",
+      "port_name": "Redi Port",
+      "state": "Maharashtra",
+      "coast": "WEST",
+      "lat": 15.744,
+      "lon": 73.658,
+      "max_berths": 4,
+      "operational_profile": "Iron-ore barge & coastal anchorage",
+      "berth_bbox": [
+        73.644,
+        15.734,
+        73.672,
+        15.754
+      ],
+      "anchorage_bbox": [
+        73.573,
+        15.712,
+        73.636,
+        15.77
+      ],
+      "eez_corridor_bbox": [
+        70.208,
+        14.094,
+        73.64,
+        17.394
+      ]
+    },
+    {
+      "port_id": "IN-PNJ",
+      "port_name": "Panaji Mandovi Jetty",
+      "state": "Goa",
+      "coast": "WEST",
+      "lat": 15.498,
+      "lon": 73.816,
+      "max_berths": 5,
+      "operational_profile": "Coastal passenger ferry & riverine barge hub",
+      "berth_bbox": [
+        73.802,
+        15.488,
+        73.83,
+        15.508
+      ],
+      "anchorage_bbox": [
+        73.731,
+        15.466,
+        73.794,
+        15.524
+      ],
+      "eez_corridor_bbox": [
+        70.366,
+        13.848,
+        73.798,
+        17.148
+      ]
+    },
+    {
+      "port_id": "IN-BLG",
+      "port_name": "Betul Fishing Harbour",
+      "state": "Goa",
+      "coast": "WEST",
+      "lat": 15.142,
+      "lon": 73.944,
+      "max_berths": 4,
+      "operational_profile": "South Goa purse-seine & trawler harbour",
+      "berth_bbox": [
+        73.93,
+        15.132,
+        73.958,
+        15.152
+      ],
+      "anchorage_bbox": [
+        73.859,
+        15.11,
+        73.922,
+        15.168
+      ],
+      "eez_corridor_bbox": [
+        70.494,
+        13.492,
+        73.926,
+        16.792
+      ]
+    },
+    {
+      "port_id": "IN-BLK",
+      "port_name": "Belekeri Port",
+      "state": "Karnataka",
+      "coast": "WEST",
+      "lat": 14.706,
+      "lon": 74.267,
+      "max_berths": 5,
+      "operational_profile": "Uttara Kannada bulk lighterage anchorage",
+      "berth_bbox": [
+        74.253,
+        14.696,
+        74.281,
+        14.716
+      ],
+      "anchorage_bbox": [
+        74.182,
+        14.674,
+        74.245,
+        14.732
+      ],
+      "eez_corridor_bbox": [
+        70.817,
+        13.056,
+        74.249,
+        16.356
+      ]
+    },
+    {
+      "port_id": "IN-TAD",
+      "port_name": "Tadadi Port",
+      "state": "Karnataka",
+      "coast": "WEST",
+      "lat": 14.521,
+      "lon": 74.356,
+      "max_berths": 4,
+      "operational_profile": "Estuarine fishing & coastal feeder berth",
+      "berth_bbox": [
+        74.342,
+        14.511,
+        74.37,
+        14.531
+      ],
+      "anchorage_bbox": [
+        74.271,
+        14.489,
+        74.334,
+        14.547
+      ],
+      "eez_corridor_bbox": [
+        70.906,
+        12.871,
+        74.338,
+        16.171
+      ]
+    },
+    {
+      "port_id": "IN-HNV",
+      "port_name": "Honnavar Port",
+      "state": "Karnataka",
+      "coast": "WEST",
+      "lat": 14.279,
+      "lon": 74.436,
+      "max_berths": 5,
+      "operational_profile": "Sharavati mouth fishing & coastal barge hub",
+      "berth_bbox": [
+        74.422,
+        14.269,
+        74.45,
+        14.289
+      ],
+      "anchorage_bbox": [
+        74.351,
+        14.247,
+        74.414,
+        14.305
+      ],
+      "eez_corridor_bbox": [
+        70.986,
+        12.629,
+        74.418,
+        15.929
+      ]
+    },
+    {
+      "port_id": "IN-BTK",
+      "port_name": "Bhatkal Port",
+      "state": "Karnataka",
+      "coast": "WEST",
+      "lat": 13.972,
+      "lon": 74.544,
+      "max_berths": 4,
+      "operational_profile": "Coastal trawler & regional cargo landing",
+      "berth_bbox": [
+        74.53,
+        13.962,
+        74.558,
+        13.982
+      ],
+      "anchorage_bbox": [
+        74.459,
+        13.94,
+        74.522,
+        13.998
+      ],
+      "eez_corridor_bbox": [
+        71.094,
+        12.322,
+        74.526,
+        15.622
+      ]
+    },
+    {
+      "port_id": "IN-MLP",
       "port_name": "Malpe Fishing Harbour",
       "state": "Karnataka",
       "coast": "WEST",
-      "lat": 13.35,
-      "lon": 74.705,
-      "max_berths": 3,
-      "operational_profile": "Major mechanised fishing harbour",
-      "berth_bbox": [74.687, 13.343, 74.712, 13.357],
-      "anchorage_bbox": [74.62, 13.32, 74.68, 13.375],
-      "eez_corridor_bbox": [71.296, 11.68, 74.712, 15.02]
+      "lat": 13.347,
+      "lon": 74.696,
+      "max_berths": 7,
+      "operational_profile": "Karnataka mechanized fishing & island ferry hub",
+      "berth_bbox": [
+        74.682,
+        13.337,
+        74.71,
+        13.357
+      ],
+      "anchorage_bbox": [
+        74.611,
+        13.315,
+        74.674,
+        13.373
+      ],
+      "eez_corridor_bbox": [
+        71.246,
+        11.697,
+        74.678,
+        14.997
+      ]
     },
     {
-      "port_id": "IN-MRM",
-      "port_name": "Mangaluru Old Port",
-      "state": "Karnataka",
+      "port_id": "IN-KSG",
+      "port_name": "Kasaragod Port",
+      "state": "Kerala",
       "coast": "WEST",
-      "lat": 12.858,
-      "lon": 74.836,
+      "lat": 12.495,
+      "lon": 74.982,
       "max_berths": 4,
-      "operational_profile": "Lakshadweep cargo & fishing",
-      "berth_bbox": [74.818, 12.849, 74.843, 12.867],
-      "anchorage_bbox": [74.751, 12.828, 74.811, 12.883],
-      "eez_corridor_bbox": [71.434, 11.188, 74.843, 14.528]
+      "operational_profile": "North Malabar fishing & coastal boat hub",
+      "berth_bbox": [
+        74.968,
+        12.485,
+        74.996,
+        12.505
+      ],
+      "anchorage_bbox": [
+        74.897,
+        12.463,
+        74.96,
+        12.521
+      ],
+      "eez_corridor_bbox": [
+        71.532,
+        10.845,
+        74.964,
+        14.145
+      ]
     },
     {
-      "port_id": "IN-QUI",
+      "port_id": "IN-AZK",
+      "port_name": "Azhikkal Port",
+      "state": "Kerala",
+      "coast": "WEST",
+      "lat": 11.946,
+      "lon": 75.298,
+      "max_berths": 5,
+      "operational_profile": "Kannur regional cargo & coastal shipping",
+      "berth_bbox": [
+        75.284,
+        11.936,
+        75.312,
+        11.956
+      ],
+      "anchorage_bbox": [
+        75.213,
+        11.914,
+        75.276,
+        11.972
+      ],
+      "eez_corridor_bbox": [
+        71.848,
+        10.296,
+        75.28,
+        13.596
+      ]
+    },
+    {
+      "port_id": "IN-PNN",
+      "port_name": "Ponnani Port",
+      "state": "Kerala",
+      "coast": "WEST",
+      "lat": 10.783,
+      "lon": 75.915,
+      "max_berths": 4,
+      "operational_profile": "Malappuram fishing & coastal lighterage port",
+      "berth_bbox": [
+        75.901,
+        10.773,
+        75.929,
+        10.793
+      ],
+      "anchorage_bbox": [
+        75.83,
+        10.751,
+        75.893,
+        10.809
+      ],
+      "eez_corridor_bbox": [
+        72.465,
+        9.133,
+        75.897,
+        12.433
+      ]
+    },
+    {
+      "port_id": "IN-KLM",
       "port_name": "Kollam Port",
       "state": "Kerala",
       "coast": "WEST",
-      "lat": 8.877,
-      "lon": 76.575,
-      "max_berths": 4,
-      "operational_profile": "Cashew trade, coastal cargo & fishing",
-      "berth_bbox": [76.557, 8.868, 76.582, 8.886],
-      "anchorage_bbox": [76.491, 8.847, 76.55, 8.902],
-      "eez_corridor_bbox": [73.218, 7.207, 76.582, 10.547]
+      "lat": 8.884,
+      "lon": 76.578,
+      "max_berths": 6,
+      "operational_profile": "South Kerala coastal feeder & cashew cargo",
+      "berth_bbox": [
+        76.564,
+        8.874,
+        76.592,
+        8.894
+      ],
+      "anchorage_bbox": [
+        76.493,
+        8.852,
+        76.556,
+        8.91
+      ],
+      "eez_corridor_bbox": [
+        73.128,
+        7.234,
+        76.56,
+        10.534
+      ]
     },
     {
-      "port_id": "IN-KRK",
+      "port_id": "IN-NDK",
+      "port_name": "Neendakara Fishing Harbour",
+      "state": "Kerala",
+      "coast": "WEST",
+      "lat": 8.938,
+      "lon": 76.541,
+      "max_berths": 7,
+      "operational_profile": "High-volume pelagic trawler & landing centre",
+      "berth_bbox": [
+        76.527,
+        8.928,
+        76.555,
+        8.948
+      ],
+      "anchorage_bbox": [
+        76.456,
+        8.906,
+        76.519,
+        8.964
+      ],
+      "eez_corridor_bbox": [
+        73.091,
+        7.288,
+        76.523,
+        10.588
+      ]
+    },
+    {
+      "port_id": "IN-VZJ",
+      "port_name": "Vizhinjam Regional Terminal",
+      "state": "Kerala",
+      "coast": "WEST",
+      "lat": 8.378,
+      "lon": 76.989,
+      "max_berths": 8,
+      "operational_profile": "Southernmost deepwater transshipment & ferry hub",
+      "berth_bbox": [
+        76.975,
+        8.368,
+        77.003,
+        8.388
+      ],
+      "anchorage_bbox": [
+        76.904,
+        8.346,
+        76.967,
+        8.404
+      ],
+      "eez_corridor_bbox": [
+        73.539,
+        6.728,
+        76.971,
+        10.028
+      ]
+    },
+    {
+      "port_id": "IN-KVT",
+      "port_name": "Kavaratti Harbour",
+      "state": "Lakshadweep",
+      "coast": "ISLAND",
+      "lat": 10.566,
+      "lon": 72.641,
+      "max_berths": 4,
+      "operational_profile": "Island passenger ferry & lagoon cargo jetty",
+      "berth_bbox": [
+        72.627,
+        10.556,
+        72.655,
+        10.576
+      ],
+      "anchorage_bbox": [
+        72.586,
+        10.521,
+        72.696,
+        10.611
+      ],
+      "eez_corridor_bbox": [
+        70.441,
+        8.916,
+        74.841,
+        12.216
+      ]
+    },
+    {
+      "port_id": "IN-MNC",
+      "port_name": "Minicoy Anchorage",
+      "state": "Lakshadweep",
+      "coast": "ISLAND",
+      "lat": 8.284,
+      "lon": 73.052,
+      "max_berths": 3,
+      "operational_profile": "Eight-Degree Channel island ferry & tuna craft",
+      "berth_bbox": [
+        73.038,
+        8.274,
+        73.066,
+        8.294
+      ],
+      "anchorage_bbox": [
+        72.997,
+        8.239,
+        73.107,
+        8.329
+      ],
+      "eez_corridor_bbox": [
+        70.852,
+        6.634,
+        75.252,
+        9.934
+      ]
+    },
+    {
+      "port_id": "IN-CLC",
+      "port_name": "Colachel Port",
+      "state": "Tamil Nadu",
+      "coast": "EAST",
+      "lat": 8.174,
+      "lon": 77.251,
+      "max_berths": 5,
+      "operational_profile": "Cape Comorin fishing & coastal feeder bay",
+      "berth_bbox": [
+        77.237,
+        8.164,
+        77.265,
+        8.184
+      ],
+      "anchorage_bbox": [
+        77.273,
+        8.144,
+        77.339,
+        8.206
+      ],
+      "eez_corridor_bbox": [
+        77.269,
+        6.524,
+        80.701,
+        9.824
+      ]
+    },
+    {
+      "port_id": "IN-RMP",
+      "port_name": "Rameswaram Fishing Jetty",
+      "state": "Tamil Nadu",
+      "coast": "EAST",
+      "lat": 9.288,
+      "lon": 79.318,
+      "max_berths": 6,
+      "operational_profile": "Palk Bay fishing fleet & IMBL monitoring hub",
+      "berth_bbox": [
+        79.304,
+        9.278,
+        79.332,
+        9.298
+      ],
+      "anchorage_bbox": [
+        79.34,
+        9.258,
+        79.406,
+        9.32
+      ],
+      "eez_corridor_bbox": [
+        79.336,
+        7.638,
+        82.768,
+        10.938
+      ]
+    },
+    {
+      "port_id": "IN-TDN",
+      "port_name": "Thondi Port",
+      "state": "Tamil Nadu",
+      "coast": "EAST",
+      "lat": 9.742,
+      "lon": 79.02,
+      "max_berths": 4,
+      "operational_profile": "Palk Strait coastal fishing & dhow landing",
+      "berth_bbox": [
+        79.006,
+        9.732,
+        79.034,
+        9.752
+      ],
+      "anchorage_bbox": [
+        79.042,
+        9.712,
+        79.108,
+        9.774
+      ],
+      "eez_corridor_bbox": [
+        79.038,
+        8.092,
+        82.47,
+        11.392
+      ]
+    },
+    {
+      "port_id": "IN-NGP",
+      "port_name": "Nagapattinam Port",
+      "state": "Tamil Nadu",
+      "coast": "EAST",
+      "lat": 10.761,
+      "lon": 79.849,
+      "max_berths": 6,
+      "operational_profile": "Cauvery delta regional cargo & ferry terminal",
+      "berth_bbox": [
+        79.835,
+        10.751,
+        79.863,
+        10.771
+      ],
+      "anchorage_bbox": [
+        79.871,
+        10.731,
+        79.937,
+        10.793
+      ],
+      "eez_corridor_bbox": [
+        79.867,
+        9.111,
+        83.299,
+        12.411
+      ]
+    },
+    {
+      "port_id": "IN-KKL",
       "port_name": "Karaikal Port",
       "state": "Puducherry",
       "coast": "EAST",
-      "lat": 10.84,
-      "lon": 79.855,
+      "lat": 10.892,
+      "lon": 79.851,
       "max_berths": 8,
-      "operational_profile": "Coal & bulk on the Coromandel coast",
-      "berth_bbox": [79.848, 10.824, 79.873, 10.856],
-      "anchorage_bbox": [79.88, 10.81, 79.939, 10.865],
-      "eez_corridor_bbox": [79.848, 10.0, 83.232, 12.51]
+      "operational_profile": "Deepwater bulk, cement & coastal container hub",
+      "berth_bbox": [
+        79.837,
+        10.882,
+        79.865,
+        10.902
+      ],
+      "anchorage_bbox": [
+        79.873,
+        10.862,
+        79.939,
+        10.924
+      ],
+      "eez_corridor_bbox": [
+        79.869,
+        9.242,
+        83.301,
+        12.542
+      ]
     },
     {
       "port_id": "IN-CDL",
       "port_name": "Cuddalore Port",
       "state": "Tamil Nadu",
       "coast": "EAST",
-      "lat": 11.705,
-      "lon": 79.775,
-      "max_berths": 4,
-      "operational_profile": "Coastal cargo & fishing",
-      "berth_bbox": [79.768, 11.696, 79.793, 11.714],
-      "anchorage_bbox": [79.8, 11.675, 79.86, 11.73],
-      "eez_corridor_bbox": [79.768, 10.035, 83.162, 13.375]
+      "lat": 11.714,
+      "lon": 79.776,
+      "max_berths": 5,
+      "operational_profile": "Coromandel chemical feeder & fishing harbour",
+      "berth_bbox": [
+        79.762,
+        11.704,
+        79.79,
+        11.724
+      ],
+      "anchorage_bbox": [
+        79.798,
+        11.684,
+        79.864,
+        11.746
+      ],
+      "eez_corridor_bbox": [
+        79.794,
+        10.064,
+        83.226,
+        13.364
+      ]
     },
     {
-      "port_id": "IN-KPT",
+      "port_id": "IN-PDY",
+      "port_name": "Puducherry Port",
+      "state": "Puducherry",
+      "coast": "EAST",
+      "lat": 11.918,
+      "lon": 79.832,
+      "max_berths": 5,
+      "operational_profile": "Regional barge anchorage & coastal berth",
+      "berth_bbox": [
+        79.818,
+        11.908,
+        79.846,
+        11.928
+      ],
+      "anchorage_bbox": [
+        79.854,
+        11.888,
+        79.92,
+        11.95
+      ],
+      "eez_corridor_bbox": [
+        79.85,
+        10.268,
+        83.282,
+        13.568
+      ]
+    },
+    {
+      "port_id": "IN-KTP",
+      "port_name": "Kattupalli Regional Berth",
+      "state": "Tamil Nadu",
+      "coast": "EAST",
+      "lat": 13.306,
+      "lon": 80.349,
+      "max_berths": 8,
+      "operational_profile": "North Chennai container & coastal Ro-Ro berth",
+      "berth_bbox": [
+        80.335,
+        13.296,
+        80.363,
+        13.316
+      ],
+      "anchorage_bbox": [
+        80.371,
+        13.276,
+        80.437,
+        13.338
+      ],
+      "eez_corridor_bbox": [
+        80.367,
+        11.656,
+        83.799,
+        14.956
+      ]
+    },
+    {
+      "port_id": "IN-KSP",
       "port_name": "Krishnapatnam Port",
       "state": "Andhra Pradesh",
       "coast": "EAST",
-      "lat": 14.255,
-      "lon": 80.125,
+      "lat": 14.252,
+      "lon": 80.128,
       "max_berths": 10,
-      "operational_profile": "Deep-water bulk & container port",
-      "berth_bbox": [80.118, 14.235, 80.143, 14.275],
-      "anchorage_bbox": [80.15, 14.225, 80.211, 14.28],
-      "eez_corridor_bbox": [80.118, 12.585, 83.547, 15.925]
+      "operational_profile": "East coast coal, edible oil & container hub",
+      "berth_bbox": [
+        80.114,
+        14.242,
+        80.142,
+        14.262
+      ],
+      "anchorage_bbox": [
+        80.15,
+        14.222,
+        80.216,
+        14.284
+      ],
+      "eez_corridor_bbox": [
+        80.146,
+        12.602,
+        83.578,
+        15.902
+      ]
     },
     {
-      "port_id": "IN-MTP",
+      "port_id": "IN-VDV",
+      "port_name": "Vodarevu Anchorage",
+      "state": "Andhra Pradesh",
+      "coast": "EAST",
+      "lat": 15.798,
+      "lon": 80.422,
+      "max_berths": 4,
+      "operational_profile": "Prakasam fishing & coastal anchorage",
+      "berth_bbox": [
+        80.408,
+        15.788,
+        80.436,
+        15.808
+      ],
+      "anchorage_bbox": [
+        80.444,
+        15.768,
+        80.51,
+        15.83
+      ],
+      "eez_corridor_bbox": [
+        80.44,
+        14.148,
+        83.872,
+        17.448
+      ]
+    },
+    {
+      "port_id": "IN-NPT",
+      "port_name": "Nizampatnam Fishing Harbour",
+      "state": "Andhra Pradesh",
+      "coast": "EAST",
+      "lat": 15.899,
+      "lon": 80.669,
+      "max_berths": 6,
+      "operational_profile": "Krishna delta trawler & aquaculture harbour",
+      "berth_bbox": [
+        80.655,
+        15.889,
+        80.683,
+        15.909
+      ],
+      "anchorage_bbox": [
+        80.691,
+        15.869,
+        80.757,
+        15.931
+      ],
+      "eez_corridor_bbox": [
+        80.687,
+        14.249,
+        84.119,
+        17.549
+      ]
+    },
+    {
+      "port_id": "IN-MCP",
       "port_name": "Machilipatnam Port",
       "state": "Andhra Pradesh",
       "coast": "EAST",
-      "lat": 16.17,
-      "lon": 81.2,
-      "max_berths": 5,
-      "operational_profile": "Developing cargo & fishing port",
-      "berth_bbox": [81.193, 16.159, 81.218, 16.181],
-      "anchorage_bbox": [81.226, 16.14, 81.287, 16.195],
-      "eez_corridor_bbox": [81.193, 14.5, 84.654, 17.84]
+      "lat": 16.148,
+      "lon": 81.186,
+      "max_berths": 6,
+      "operational_profile": "Coastal agri-cargo & bulk feeder anchorage",
+      "berth_bbox": [
+        81.172,
+        16.138,
+        81.2,
+        16.158
+      ],
+      "anchorage_bbox": [
+        81.208,
+        16.118,
+        81.274,
+        16.18
+      ],
+      "eez_corridor_bbox": [
+        81.204,
+        14.498,
+        84.636,
+        17.798
+      ]
     },
     {
-      "port_id": "IN-DHA",
+      "port_id": "IN-GVP",
+      "port_name": "Gangavaram Regional Terminal",
+      "state": "Andhra Pradesh",
+      "coast": "EAST",
+      "lat": 17.624,
+      "lon": 83.241,
+      "max_berths": 9,
+      "operational_profile": "Deepwater bulk & coastal steel feeder",
+      "berth_bbox": [
+        83.227,
+        17.614,
+        83.255,
+        17.634
+      ],
+      "anchorage_bbox": [
+        83.263,
+        17.594,
+        83.329,
+        17.656
+      ],
+      "eez_corridor_bbox": [
+        83.259,
+        15.974,
+        86.691,
+        19.274
+      ]
+    },
+    {
+      "port_id": "IN-BMN",
+      "port_name": "Bhimunipatnam Jetty",
+      "state": "Andhra Pradesh",
+      "coast": "EAST",
+      "lat": 17.889,
+      "lon": 83.457,
+      "max_berths": 4,
+      "operational_profile": "North Andhra coastal fishing & ferry jetty",
+      "berth_bbox": [
+        83.443,
+        17.879,
+        83.471,
+        17.899
+      ],
+      "anchorage_bbox": [
+        83.479,
+        17.859,
+        83.545,
+        17.921
+      ],
+      "eez_corridor_bbox": [
+        83.475,
+        16.239,
+        86.907,
+        19.539
+      ]
+    },
+    {
+      "port_id": "IN-DHM",
       "port_name": "Dhamra Port",
       "state": "Odisha",
       "coast": "EAST",
-      "lat": 20.785,
-      "lon": 86.965,
+      "lat": 20.796,
+      "lon": 86.968,
       "max_berths": 8,
-      "operational_profile": "Deep-draft bulk & LNG port",
-      "berth_bbox": [86.958, 20.769, 86.984, 20.801],
-      "anchorage_bbox": [86.992, 20.755, 87.054, 20.81],
-      "eez_corridor_bbox": [86.958, 19.115, 90.513, 20.9]
+      "operational_profile": "Bay of Bengal bulk & coastal feeder port",
+      "berth_bbox": [
+        86.954,
+        20.786,
+        86.982,
+        20.806
+      ],
+      "anchorage_bbox": [
+        86.99,
+        20.766,
+        87.056,
+        20.828
+      ],
+      "eez_corridor_bbox": [
+        86.986,
+        19.146,
+        90.418,
+        22.446
+      ]
+    },
+    {
+      "port_id": "IN-BLR",
+      "port_name": "Balasore Chandipur Jetty",
+      "state": "Odisha",
+      "coast": "EAST",
+      "lat": 21.445,
+      "lon": 87.038,
+      "max_berths": 4,
+      "operational_profile": "North Odisha fishing & coastal craft harbour",
+      "berth_bbox": [
+        87.024,
+        21.435,
+        87.052,
+        21.455
+      ],
+      "anchorage_bbox": [
+        87.06,
+        21.415,
+        87.126,
+        21.477
+      ],
+      "eez_corridor_bbox": [
+        87.056,
+        19.795,
+        90.488,
+        23.095
+      ]
+    },
+    {
+      "port_id": "IN-SGR",
+      "port_name": "Sagar Anchorage",
+      "state": "West Bengal",
+      "coast": "EAST",
+      "lat": 21.646,
+      "lon": 88.062,
+      "max_berths": 7,
+      "operational_profile": "Hooghly estuary lighterage & coastal ferry hub",
+      "berth_bbox": [
+        88.048,
+        21.636,
+        88.076,
+        21.656
+      ],
+      "anchorage_bbox": [
+        88.084,
+        21.616,
+        88.15,
+        21.678
+      ],
+      "eez_corridor_bbox": [
+        88.08,
+        19.996,
+        91.512,
+        23.296
+      ]
+    },
+    {
+      "port_id": "IN-KLD",
+      "port_name": "Kulpi Regional Terminal",
+      "state": "West Bengal",
+      "coast": "EAST",
+      "lat": 22.084,
+      "lon": 88.241,
+      "max_berths": 5,
+      "operational_profile": "Sundarbans river-sea feeder & fishing hub",
+      "berth_bbox": [
+        88.227,
+        22.074,
+        88.255,
+        22.094
+      ],
+      "anchorage_bbox": [
+        88.263,
+        22.054,
+        88.329,
+        22.116
+      ],
+      "eez_corridor_bbox": [
+        88.259,
+        20.434,
+        91.691,
+        23.734
+      ]
+    },
+    {
+      "port_id": "IN-PBL",
+      "port_name": "Port Blair Haddo Harbour",
+      "state": "Andaman and Nicobar",
+      "coast": "ISLAND",
+      "lat": 11.682,
+      "lon": 92.724,
+      "max_berths": 8,
+      "operational_profile": "Inter-island passenger ferry & naval-civil hub",
+      "berth_bbox": [
+        92.71,
+        11.672,
+        92.738,
+        11.692
+      ],
+      "anchorage_bbox": [
+        92.669,
+        11.637,
+        92.779,
+        11.727
+      ],
+      "eez_corridor_bbox": [
+        90.524,
+        10.032,
+        94.924,
+        13.332
+      ]
+    },
+    {
+      "port_id": "IN-CMP",
+      "port_name": "Campbell Bay Anchorage",
+      "state": "Andaman and Nicobar",
+      "coast": "ISLAND",
+      "lat": 7.011,
+      "lon": 93.928,
+      "max_berths": 4,
+      "operational_profile": "Great Nicobar Six-Degree Channel strategic port",
+      "berth_bbox": [
+        93.914,
+        7.001,
+        93.942,
+        7.021
+      ],
+      "anchorage_bbox": [
+        93.873,
+        6.966,
+        93.983,
+        7.056
+      ],
+      "eez_corridor_bbox": [
+        91.728,
+        5.361,
+        96.128,
+        8.661
+      ]
     }
   ]
 }
