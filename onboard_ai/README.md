@@ -5,11 +5,28 @@ python -m onboard_ai.edge_pipeline                       # full sweep, all 60 po
 python -m onboard_ai.edge_pipeline --port IN-KAK --sea-state MONSOON_ROUGH --pass-time 06:00
 python -m onboard_ai.edge_pipeline --port IN-KRW --upload my_scene.png
 python -m onboard_ai.edge_pipeline --sensor-mode X-BAND              # adds 3 m X-band spotlights
+python -m onboard_ai.real_sentinel1                      # REAL Sentinel-1 scenes, all ports (~5 min)
+python -m onboard_ai.real_sentinel1 --port IN-KRW        # one port (~15 s)
 pytest tests/test_onboard_pipeline.py
 ```
 First run trains the classifier and writes `onboard_ai/models/vessel_classifier.onnx` (~10 s).
 
-## For the dashboard (`app.py`)
+## Real Sentinel-1 data (`real_sentinel1.py`)
+For each port the newest real **Sentinel-1 IW** scene (radiometrically terrain corrected, 10 m,
+VV) is found in Microsoft Planetary Computer's free catalogue (no account), and only a
+~20-25 km window around the harbour, anchorage and approach is read from the cloud-optimized
+GeoTIFF (never the ~1.8 GB scene). The exact onboard detector runs on it, results are cached in
+`outputs/real/<port_id>.json` with preview PNGs, and `outputs/real_telemetry.json` is the
+combined packet (schema-valid, `data_source: REAL_SENTINEL1`, `ais_available: false`).
+
+- Coverage: 59 of 60 ports (Kavaratti has no Sentinel-1 acquisitions); revisit every 6-12 days.
+  The catalogue lags for some ports, so scene dates range from July to a few days ago.
+- No same-time AIS exists for these scenes yet, so no vessel is flagged dark.
+- Land is masked from the image itself (Otsu); thin harbour structures can still produce a
+  few false detections. Saturated ships smeared into a "+" of sidelobes are kept by a
+  brightness rule (> 100x the local sea).
+
+## Calling the pipeline from Python
 ```python
 from onboard_ai.edge_pipeline import run_pass
 
@@ -73,9 +90,10 @@ the OpenSARShip (OSSDD) dataset authors."*
 
 | Model | Ships found | False alarms | Precision | Size class |
 |---|---|---|---|---|
-| Simulator-only | 99.5 % | 1,514 (28.9 / 100 km²) | 49 % | 100 % |
-| **OpenSARShip-trained (used)** | **96.4 %** | **533 (10.2 / 100 km²)** | **69 %** | 100 % |
+| Simulator-only | 99.1 % | 917 (17.5 / 100 km²) | 54 % | 100 % |
+| **OpenSARShip-trained (used)** | **98.3 %** | **426 (8.1 / 100 km²)** | **71 %** | 100 % |
 
+Includes fragment merging (blobs within 30 m form one target) and the bright-target rule.
 Median length error vs the annotated boxes: ~23 m.
 
 ## Measured on the simulator

@@ -331,11 +331,28 @@ def analyze_telemetry(
             "status_message": f"Using {len(local_ais)} local simulated AIS records.",
         }
 
-    updated_vessels, enriched_vessels = match_vessels_to_ais(
-        working_packet.get("vessels", []),
-        ais_feed_info["records"],
-        max_distance_km=match_threshold_km,
-    )
+    # Real Sentinel-1 packets carry "ais_available": false until a same-time AIS source exists:
+    # then nothing can be called dark, so skip matching instead of flagging every vessel.
+    ais_checked = working_packet.get("telemetry_header", {}).get("ais_available", True) is not False
+    if ais_checked:
+        updated_vessels, enriched_vessels = match_vessels_to_ais(
+            working_packet.get("vessels", []),
+            ais_feed_info["records"],
+            max_distance_km=match_threshold_km,
+        )
+    else:
+        updated_vessels = copy.deepcopy(working_packet.get("vessels", []))
+        enriched_vessels = []
+        for vessel in updated_vessels:
+            enriched = copy.deepcopy(vessel)
+            enriched["eta_minutes_effective"] = estimate_eta_minutes(vessel)
+            enriched["matched_ais_mmsi"] = None
+            enriched["matched_ais_name"] = None
+            enriched["ais_distance_km"] = None
+            enriched["alert_flag"] = "AIS_NOT_CHECKED"
+            enriched_vessels.append(enriched)
+        ais_feed_info = {**ais_feed_info, "status_message": "Real Sentinel-1 scenes: no same-time AIS "
+                         "source yet, so dark-vessel checks are off."}
     working_packet["vessels"] = updated_vessels
 
     dark_counts_by_port: dict[str, int] = {}
@@ -343,7 +360,7 @@ def analyze_telemetry(
     for vessel in enriched_vessels:
         pid = vessel["port_id"]
         vessels_by_port.setdefault(pid, []).append(vessel)
-        if not vessel["ais_matched"]:
+        if ais_checked and not vessel["ais_matched"]:
             dark_counts_by_port[pid] = dark_counts_by_port.get(pid, 0) + 1
 
     total_active_vessels = 0
@@ -381,6 +398,7 @@ def analyze_telemetry(
             + int(counts.get("coastal_fishing_boats", 0))
             + int(counts.get("approaching_ferries", 0))
             + int(counts.get("offshore_eez_vessels", 0))
+            + int(counts.get("coastal_cargo_vessels", 0))
         )
         total_active_vessels += port_total_vessels
         if utilization > 0.75:
@@ -410,6 +428,7 @@ def analyze_telemetry(
         "congested_ports_count": congested_ports_count,
         "total_ports": len(working_packet.get("ports_summary", [])),
         "total_network_ports": len(cfg.get("ports", [])),
+        "ais_checked": ais_checked,
         "total_trade_value_inr_cr": round(total_trade_cr, 2),
         "total_cargo_tonnage_mt": round(total_tonnage_mt, 1),
     }

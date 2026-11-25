@@ -25,12 +25,18 @@ venv at a short path such as `C:\venvs\edgeport`.
 
 ## Run
 ```bash
+python -m onboard_ai.real_sentinel1  # fetch REAL Sentinel-1 scenes for all ports (~5 min, free, no account)
 python -m ground_station.api_server  # dashboard + API at http://127.0.0.1:8000
 python -m onboard_ai.edge_pipeline   # optional: run a pass from the CLI (writes outputs/)
 pytest                               # tests
 ```
 For frontend development with hot reload, run the API server and `cd frontend && npm run dev`
 (Vite on http://localhost:5173 proxies `/api` to port 8000).
+
+The dashboard shows **real Sentinel-1 detections** by default once they are fetched (Data Source:
+Real / Simulated); the Real Sentinel-1 panel can refetch one port (~15 s) or all ports.
+Real scenes come from Copernicus Sentinel-1 via Microsoft Planetary Computer; no AIS is
+matched to them yet, so no vessel is flagged dark.
 
 In the dashboard, "Run Orbital Pass Simulation" calls the onboard pipeline live. Pick one port
 (~1 s) or all 60 (~30 s), C-band or the X-band 3 m spotlight, or upload a .tif/.png/.npy scene.

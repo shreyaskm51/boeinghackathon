@@ -52,6 +52,13 @@ def isolated_outputs(tmp_path, monkeypatch):
         monkeypatch.setattr(edge_pipeline, "SIMULATED_AIS_PATH", sim_ais)
     except ImportError:
         pass
+    try:  # real Sentinel-1 cache: tests start without any real data
+        import onboard_ai.real_sentinel1 as real_sentinel1
+
+        monkeypatch.setattr(real_sentinel1, "REAL_DIR", tmp_path / "real")
+        monkeypatch.setattr(real_sentinel1, "REAL_PACKET_PATH", tmp_path / "real_telemetry.json")
+    except ImportError:
+        pass
 
 
 def test_local_ais_ground_truth_valid() -> None:

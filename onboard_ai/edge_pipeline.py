@@ -126,6 +126,8 @@ def summarize_port(port: dict, vessels: list[VesselRecord]) -> dict:
             "anchorage_waiting": n(lambda v: v.zone == "ANCHORAGE_QUEUE" and v.vessel_type != "FISHING_BOAT"),
             "coastal_fishing_boats": n(lambda v: v.vessel_type == "FISHING_BOAT" and v.zone != "OFFSHORE_EEZ"),
             "approaching_ferries": n(lambda v: v.vessel_type == "FERRY" and v.zone == "COASTAL_APPROACH"),
+            # cargo ships in the 0-50 km approach (not yet at anchorage or berth)
+            "coastal_cargo_vessels": n(lambda v: v.vessel_type == "CARGO_VESSEL" and v.zone == "COASTAL_APPROACH"),
             "offshore_eez_vessels": n(lambda v: v.zone == "OFFSHORE_EEZ"),
         },
         "utilization_index": utilization,
@@ -159,6 +161,8 @@ def _packet_bytes(packet: dict) -> int:
 
 
 def _bandwidth_saved_pct(json_bytes: int, raw_mb: float) -> float:
+    if raw_mb <= 0:
+        return 0.0
     saved = 100.0 * (1.0 - json_bytes / (raw_mb * 1e6))
     return math.floor(saved * 100) / 100  # truncate, never round up to 100 %
 

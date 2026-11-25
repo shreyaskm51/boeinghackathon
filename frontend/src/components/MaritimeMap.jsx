@@ -23,8 +23,13 @@ const INDIA_COAST_POLYGONS = [
   [[93.6, 8.1], [94.0, 7.0], [93.7, 6.7], [93.5, 7.8], [93.6, 8.1]],
 ];
 
+// Real Sentinel-1 data has no same-time AIS yet: such vessels are "not checked", not dark.
+function isDark(vessel) {
+  return !vessel.ais_matched && vessel.alert_flag !== "AIS_NOT_CHECKED";
+}
+
 function getVesselStyle(vessel) {
-  if (!vessel.ais_matched) {
+  if (isDark(vessel)) {
     return VESSEL_STYLES.DARK_VESSEL;
   }
   return VESSEL_STYLES[vessel.vessel_type] || VESSEL_STYLES.CARGO_VESSEL;
@@ -41,7 +46,9 @@ function bboxToLeafletBounds(bbox) {
 function formatVesselPopup(vessel) {
   const aisText = vessel.ais_matched
     ? `VERIFIED (MMSI ${vessel.matched_ais_mmsi} — ${vessel.matched_ais_name})`
-    : `ALERT: ${vessel.alert_flag || "DARK_VESSEL"}`;
+    : vessel.alert_flag === "AIS_NOT_CHECKED"
+      ? "AIS not checked (real Sentinel-1 detection)"
+      : `ALERT: ${vessel.alert_flag || "DARK_VESSEL"}`;
   const eta = vessel.eta_minutes_effective ?? vessel.eta_minutes;
   return `
     <div style="font-size:12px;line-height:1.45;color:#0f172a">
@@ -247,7 +254,7 @@ function OfflineVectorMap({ ports, portsSummaryById, vessels, selectedPortId, co
               key={vessel.vessel_id}
               cx={vx}
               cy={vy}
-              r={vessel.ais_matched ? 6.5 : 8.5}
+              r={isDark(vessel) ? 8.5 : 6.5}
               fill={style.color}
               stroke="#09111f"
               strokeWidth="1.8"
@@ -255,7 +262,7 @@ function OfflineVectorMap({ ports, portsSummaryById, vessels, selectedPortId, co
               onMouseEnter={() =>
                 setHoveredText(
                   `${vessel.vessel_id} (${vessel.vessel_type}) · ${vessel.port_id} · ${vessel.zone} · ${vessel.estimated_length_m}m · ETA ${eta ?? "N/A"}m · ${
-                    vessel.ais_matched ? `AIS ${vessel.matched_ais_mmsi}` : "DARK VESSEL"
+                    vessel.ais_matched ? `AIS ${vessel.matched_ais_mmsi}` : isDark(vessel) ? "DARK VESSEL" : "AIS not checked"
                   }`
                 )
               }
@@ -418,8 +425,8 @@ export default function MaritimeMap({
     for (const vessel of visibleVessels) {
       const style = getVesselStyle(vessel);
       L.circleMarker([vessel.latitude, vessel.longitude], {
-        radius: vessel.ais_matched ? 7 : 9,
-        color: vessel.ais_matched ? style.color : "#111827",
+        radius: isDark(vessel) ? 9 : 7,
+        color: isDark(vessel) ? "#111827" : style.color,
         weight: 2,
         fillColor: style.color,
         fillOpacity: 0.94,

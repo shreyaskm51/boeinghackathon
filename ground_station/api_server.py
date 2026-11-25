@@ -7,7 +7,9 @@ import copy
 import io
 import json
 import mimetypes
+import re
 import threading
+import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -37,6 +39,14 @@ try:
 except ImportError:
     onboard_run_pass = None
     ONBOARD_PIPELINE_AVAILABLE = False
+
+try:
+    from onboard_ai import real_sentinel1
+
+    REAL_DATA_AVAILABLE = True
+except ImportError:
+    real_sentinel1 = None
+    REAL_DATA_AVAILABLE = False
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_DIST_DIR = REPO_ROOT / "frontend" / "dist"
@@ -137,17 +147,102 @@ class EdgePortState:
         self.packet_source_label: str = source_path.name
         # one orbital pass at a time: passes are CPU-heavy and write shared output files
         self.simulation_lock = threading.Lock()
+        # real Sentinel-1 refreshes (one port live, or all ports as a background job)
+        self.real_lock = threading.Lock()
+        self.real_job: dict[str, Any] = {"running": False, "done": 0, "total": 0, "current": None,
+                                         "errors": [], "started_utc": None, "finished_utc": None}
+
+    # ------------------------------------------------------------------ real Sentinel-1 data
+    def real_packet(self) -> dict[str, Any] | None:
+        if not REAL_DATA_AVAILABLE or not real_sentinel1.REAL_PACKET_PATH.exists():
+            return None
+        try:
+            return json.loads(real_sentinel1.REAL_PACKET_PATH.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+
+    def real_ports_info(self) -> dict[str, Any]:
+        info: dict[str, Any] = {}
+        if not REAL_DATA_AVAILABLE:
+            return info
+        for port in load_ports_config()["ports"]:
+            pid = port["port_id"]
+            res = real_sentinel1.load_cached(pid)
+            if not res:
+                continue
+            entry = {"status": res.get("status"), "error": res.get("error")}
+            if res.get("status") == "OK":
+                entry.update({
+                    "scene_datetime": res["scene"]["datetime"],
+                    "platform": res["scene"].get("platform"),
+                    "sea_state": res.get("sea_state"),
+                    "vessels_detected": res["stats"]["vessels_detected"],
+                    "fetched_utc": res.get("fetched_utc"),
+                    "raw_preview_url": f"/api/real/preview/{pid}/raw.png",
+                    "overlay_preview_url": f"/api/real/preview/{pid}/overlay.png",
+                })
+            info[pid] = entry
+        return info
+
+    def default_source(self) -> str:
+        return "real" if self.real_packet() is not None else "simulated"
+
+    def refresh_real_port(self, port_id: str, use_live_ais: bool = False) -> dict[str, Any]:
+        if not REAL_DATA_AVAILABLE:
+            raise KeyError("Real Sentinel-1 support is not installed (onboard_ai.real_sentinel1).")
+        with self.real_lock:
+            res = real_sentinel1.process_port(port_id)
+            try:
+                real_sentinel1.build_real_packet()
+            except RuntimeError:
+                pass  # nothing cached yet (e.g. this port has no scene)
+        payload = self.build_dashboard_payload(use_live_ais=use_live_ais, source="real")
+        payload["refreshed_port"] = res
+        return payload
+
+    def start_real_refresh_all(self) -> dict[str, Any]:
+        if not REAL_DATA_AVAILABLE:
+            raise KeyError("Real Sentinel-1 support is not installed (onboard_ai.real_sentinel1).")
+        if self.real_job["running"]:
+            return self.real_job
+
+        def progress(done: int, total: int, res: dict[str, Any]) -> None:
+            self.real_job.update(done=done, total=total, current=res["port_id"])
+            if res.get("status") != "OK":
+                self.real_job["errors"].append({"port_id": res["port_id"], "status": res.get("status"),
+                                                "error": res.get("error")})
+
+        def worker() -> None:
+            try:
+                with self.real_lock:
+                    real_sentinel1.refresh(None, workers=4, progress=progress)
+            except Exception as exc:  # noqa: BLE001 - surfaced through /api/real/status
+                self.real_job["errors"].append({"port_id": None, "status": "ERROR", "error": str(exc)})
+            finally:
+                self.real_job.update(running=False, current=None,
+                                     finished_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+
+        total = len(load_ports_config()["ports"])
+        self.real_job = {"running": True, "done": 0, "total": total, "current": None, "errors": [],
+                         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "finished_utc": None}
+        threading.Thread(target=worker, name="real-sentinel1-refresh", daemon=True).start()
+        return self.real_job
 
     def reload_from_disk(self) -> None:
         packet, source_path = load_telemetry_packet()
         self.active_packet = packet
         self.packet_source_label = source_path.name
 
-    def build_dashboard_payload(self, use_live_ais: bool = False) -> dict[str, Any]:
+    def build_dashboard_payload(self, use_live_ais: bool = False, source: str | None = None) -> dict[str, Any]:
         ports_cfg = load_ports_config()
+        source = source or self.default_source()
+        real = self.real_packet() if source == "real" else None
+        if source == "real" and real is None:
+            source = "simulated"
+        packet = real if real is not None else self.active_packet
         ais_feed = fetch_ais_feed(use_live=use_live_ais)
         analyzed = analyze_telemetry(
-            packet=self.active_packet,
+            packet=packet,
             ais_records=ais_feed["records"],
             ports_config=ports_cfg,
         )
@@ -157,14 +252,24 @@ class EdgePortState:
 
         return {
             "packet": analyzed["packet"],
-            "packet_source_label": self.packet_source_label,
+            "packet_source_label": ("Real Sentinel-1 scenes (Copernicus, via Microsoft Planetary Computer)"
+                                    if real is not None else self.packet_source_label),
+            "data_source": source,
+            "real_data": {
+                "available": REAL_DATA_AVAILABLE,
+                "has_packet": real is not None or self.real_packet() is not None,
+                "ports": self.real_ports_info(),
+                "job": self.real_job,
+                "attribution": real_sentinel1.ATTRIBUTION if REAL_DATA_AVAILABLE else None,
+            },
             "onboard_pipeline_available": ONBOARD_PIPELINE_AVAILABLE,
             "kpis": analyzed["kpis"],
             "ais_feed": {
                 "source": ais_feed["source"],
                 "live_enabled": ais_feed["live_enabled"],
                 "live_count": ais_feed["live_count"],
-                "status_message": ais_feed["status_message"],
+                "status_message": (ais_feed["status_message"] if analyzed["kpis"].get("ais_checked", True)
+                                   else "Not checked: no AIS from the time of the real Sentinel-1 scenes."),
             },
             "ports_config": ports_cfg,
             "enriched_vessels": analyzed["enriched_vessels"],
@@ -244,7 +349,7 @@ class EdgePortState:
                 "alert_chips": [],
             }
 
-        payload = self.build_dashboard_payload(use_live_ais=use_live_ais)
+        payload = self.build_dashboard_payload(use_live_ais=use_live_ais, source="simulated")
         payload["simulation"] = {
             "fallback_mode": fallback_mode,
             "raw_preview_url": _array_to_png_data_url(sim_result["raw_preview"]),
@@ -327,8 +432,34 @@ def make_handler(state: EdgePortState) -> type[BaseHTTPRequestHandler]:
             if parsed.path == "/api/dashboard":
                 params = parse_qs(parsed.query)
                 use_live = params.get("use_live_ais", ["0"])[0] in ("1", "true", "True")
-                payload = state.build_dashboard_payload(use_live_ais=use_live)
+                source = params.get("source", [None])[0]
+                if source not in (None, "real", "simulated"):
+                    self._send_json(HTTPStatus.BAD_REQUEST, {"error": "source must be 'real' or 'simulated'"})
+                    return
+                payload = state.build_dashboard_payload(use_live_ais=use_live, source=source)
                 self._send_json(HTTPStatus.OK, payload)
+                return
+
+            if parsed.path == "/api/real/status":
+                self._send_json(HTTPStatus.OK, {"job": state.real_job, "ports": state.real_ports_info()})
+                return
+
+            if parsed.path.startswith("/api/real/preview/"):
+                parts = parsed.path.split("/")      # ['', 'api', 'real', 'preview', pid, 'raw.png']
+                if (len(parts) == 6 and REAL_DATA_AVAILABLE and parts[5] in ("raw.png", "overlay.png")
+                        and re.fullmatch(r"IN-[A-Z0-9]{3,5}", parts[4])):
+                    img_path = real_sentinel1.REAL_DIR / f"{parts[4]}_{parts[5][:-4]}.png"
+                    if img_path.is_file():
+                        content = img_path.read_bytes()
+                        self.send_response(HTTPStatus.OK)
+                        self._send_cors_headers()
+                        self.send_header("Content-Type", "image/png")
+                        self.send_header("Content-Length", str(len(content)))
+                        self.send_header("Cache-Control", "no-cache")
+                        self.end_headers()
+                        self.wfile.write(content)
+                        return
+                self._send_json(HTTPStatus.NOT_FOUND, {"error": "No real preview for that port yet."})
                 return
 
             self._serve_static(parsed.path)
@@ -341,6 +472,18 @@ def make_handler(state: EdgePortState) -> type[BaseHTTPRequestHandler]:
                 body = json.loads(raw_body.decode("utf-8")) if raw_body else {}
             except json.JSONDecodeError:
                 self._send_json(HTTPStatus.BAD_REQUEST, {"error": "Invalid JSON body."})
+                return
+
+            if parsed.path == "/api/real/refresh":
+                port_id = body.get("port_id")
+                use_live = bool(body.get("use_live_ais", False))
+                try:
+                    if port_id in (None, "", "ALL"):
+                        self._send_json(HTTPStatus.ACCEPTED, {"job": state.start_real_refresh_all()})
+                    else:
+                        self._send_json(HTTPStatus.OK, state.refresh_real_port(str(port_id), use_live_ais=use_live))
+                except (KeyError, ValueError) as exc:
+                    self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc).strip(chr(39) + chr(34))})
                 return
 
             if parsed.path == "/api/reload":

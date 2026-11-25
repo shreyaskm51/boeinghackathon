@@ -62,12 +62,16 @@ MIN_CONFIDENCE_FISHING = float(os.environ.get("EDGEPORT_MIN_CONF_FISHING", "0.7"
 # be a vessel. At 10 m GSD a single pixel already measures ~11.5 m, so this only bites at
 # high resolution (X-band), where lone speckle pixels measure ~3.5 m.
 MIN_VESSEL_LENGTH_M = 6.0
+# Physics gate 2: a large target this many times brighter than the local sea is a vessel even
+# if its shape is distorted by sidelobes (calibrated on real OpenSARShip clutter).
+BRIGHT_TARGET_SCR = 100.0
 N_FEATURES = len(FEATURE_NAMES)
 
 GUARD_M = 310.0         # guard window (m) - wider than the biggest ship
 TRAIN_M = 710.0         # training window (m)
 BACKGROUND_DECIMATION_M = 40.0  # sea background is estimated on a ~40 m grid (fast, smooth)
 PFA = 1e-6              # design false-alarm probability per pixel
+FRAGMENT_MERGE_M = 30.0 # hit pixels within this distance belong to the same target
 MIN_VALID_TRAIN_FRACTION = 0.25
 
 
@@ -195,7 +199,12 @@ def detect_targets(img: np.ndarray, land_mask: np.ndarray | None = None, pixel_m
                    pfa: float = PFA, land_buffered: bool = False) -> list[Detection]:
     """Land mask -> CA-CFAR -> connected components -> per-blob features."""
     hits, background, k = ca_cfar(img, land_mask, pfa, pixel_m, land_buffered)
-    labels, n = ndimage.label(hits, structure=np.ones((3, 3), dtype=bool))
+    # Group hit pixels closer than FRAGMENT_MERGE_M into one target: real ships often break
+    # into several blobs (speckle, superstructure streaks); features still use only hit pixels.
+    grow = max(0, int(round(FRAGMENT_MERGE_M / pixel_m / 2)))
+    grouped = ndimage.maximum_filter(hits.view(np.uint8), size=2 * grow + 1).astype(bool) if grow else hits
+    group_labels, n = ndimage.label(grouped, structure=np.ones((3, 3), dtype=bool))
+    labels = np.where(hits, group_labels, 0)
     if n == 0:
         return []
     h, w = img.shape
@@ -380,8 +389,17 @@ def classify_detections(dets: list[Detection], classifier: "VesselClassifier | N
         return [], np.zeros(0, dtype=np.float32)
     clf = classifier or get_classifier()
     labels, conf = clf.predict(np.stack([d.features() for d in dets]))
-    labels = ["CLUTTER" if d.length_m < MIN_VESSEL_LENGTH_M else lab for d, lab in zip(dets, labels)]
-    return labels, conf
+    out = []
+    for i, (d, lab) in enumerate(zip(dets, labels)):
+        if d.length_m < MIN_VESSEL_LENGTH_M:
+            lab = "CLUTTER"
+        elif lab == "CLUTTER" and d.peak_scr >= BRIGHT_TARGET_SCR and d.area_px * d.pixel_m ** 2 >= 400:
+            # Very strong steel targets saturate and smear into a "+" of sidelobes, which looks
+            # round like clutter; sea clutter is never this bright (real p90 ~28x the sea).
+            lab = "CARGO_VESSEL" if d.length_m >= 50 else "FERRY" if d.length_m >= 20 else "FISHING_BOAT"
+            conf[i] = 0.6
+        out.append(lab)
+    return out, conf
 
 
 def _model_input_width(path: Path) -> int | None:

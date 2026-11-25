@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import MaritimeMap from "./components/MaritimeMap.jsx";
+import RealDataPanel from "./components/RealDataPanel.jsx";
 import SimulatorPanel from "./components/SimulatorPanel.jsx";
 import TradeNowcastChart from "./components/TradeNowcastChart.jsx";
 
@@ -20,12 +21,16 @@ export default function App() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [copiedPortId, setCopiedPortId] = useState("");
   const [directorySearch, setDirectorySearch] = useState("");
+  // "auto" lets the server choose (real Sentinel-1 data when it has some, else simulated)
+  const [dataSource, setDataSource] = useState("auto");
+  const [busyRealPort, setBusyRealPort] = useState("");
 
-  const fetchDashboard = useCallback(async (liveAis) => {
+  const fetchDashboard = useCallback(async (liveAis, source = "auto") => {
     setLoading(true);
     setErrorMsg("");
     try {
-      const res = await fetch(`/api/dashboard?use_live_ais=${liveAis ? "1" : "0"}`);
+      const sourceParam = source === "auto" ? "" : `&source=${source}`;
+      const res = await fetch(`/api/dashboard?use_live_ais=${liveAis ? "1" : "0"}${sourceParam}`);
       if (!res.ok) {
         throw new Error(`API error (${res.status})`);
       }
@@ -39,8 +44,71 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetchDashboard(useLiveAis);
-  }, [fetchDashboard, useLiveAis]);
+    fetchDashboard(useLiveAis, dataSource);
+  }, [fetchDashboard, useLiveAis, dataSource]);
+
+  const handleRefreshRealPort = async (portId) => {
+    setBusyRealPort(portId);
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/real/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ port_id: portId, use_live_ais: useLiveAis }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `Real data refresh failed (${res.status})`);
+      if (json.refreshed_port && json.refreshed_port.status !== "OK") {
+        setErrorMsg(`${portId}: ${json.refreshed_port.error || json.refreshed_port.status}`);
+      }
+      setData(json);
+      setDataSource("real");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Real data refresh failed.");
+    } finally {
+      setBusyRealPort("");
+    }
+  };
+
+  const handleRefreshAllReal = async () => {
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/real/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ port_id: "ALL" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `Real data refresh failed (${res.status})`);
+      setData((prev) => (prev ? { ...prev, real_data: { ...prev.real_data, job: json.job } } : prev));
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Real data refresh failed.");
+    }
+  };
+
+  // poll the background "fetch all ports" job and reload the real view when it finishes
+  const jobRunning = Boolean(data?.real_data?.job?.running);
+  useEffect(() => {
+    if (!jobRunning) return undefined;
+    const timer = setInterval(async () => {
+      try {
+        const res = await fetch("/api/real/status");
+        const status = await res.json();
+        if (!status.job.running) {
+          clearInterval(timer);
+          setDataSource("real");
+          fetchDashboard(useLiveAis, "real");
+        } else {
+          setData((prev) =>
+            prev ? { ...prev, real_data: { ...prev.real_data, job: status.job, ports: status.ports } } : prev
+          );
+        }
+      } catch {
+        // transient network error: keep polling
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [jobRunning, fetchDashboard, useLiveAis]);
 
   const handleReload = async () => {
     setLoading(true);
@@ -78,6 +146,7 @@ export default function App() {
       }
       const json = await res.json();
       setData(json);
+      setDataSource("simulated");
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Simulation error.");
     } finally {
@@ -140,7 +209,7 @@ export default function App() {
       <div style={{ padding: "2rem", color: "#fca5a5" }}>
         <h2>EdgePort Ground Station Unavailable</h2>
         <p>{errorMsg}</p>
-        <button type="button" className="btn btn-primary" onClick={() => fetchDashboard(useLiveAis)}>
+        <button type="button" className="btn btn-primary" onClick={() => fetchDashboard(useLiveAis, dataSource)}>
           Retry Connection
         </button>
       </div>
@@ -175,6 +244,20 @@ export default function App() {
 
       <aside className="sidebar">
         <h2>Ground Station Controls</h2>
+
+        <div className="form-field">
+          <label htmlFor="data-source-select">Data Source</label>
+          <select
+            id="data-source-select"
+            value={data.data_source || "simulated"}
+            onChange={(e) => setDataSource(e.target.value)}
+          >
+            <option value="real" disabled={!data.real_data?.has_packet}>
+              Real Sentinel-1 scenes{data.real_data?.has_packet ? "" : " (fetch first)"}
+            </option>
+            <option value="simulated">Simulated passes</option>
+          </select>
+        </div>
 
         <div className="form-field">
           <label htmlFor="focus-port-select">Focus Port (Map &amp; Vessels)</label>
@@ -223,6 +306,18 @@ export default function App() {
 
       <main className="main-content">
         {errorMsg ? <div className="banner-warn">{errorMsg}</div> : null}
+        {data.data_source === "real" ? (
+          <div className="banner-info">
+            Showing <strong>real Sentinel-1 radar</strong> detections from {header.ports_observed} ports
+            (scenes {header.oldest_scene_utc?.slice(0, 10)} to {header.pass_timestamp_utc?.slice(0, 10)}). AIS is
+            not checked for real scenes, so no vessel is flagged dark.
+          </div>
+        ) : (
+          <div className="banner-info">
+            Showing <strong>simulated</strong> orbital passes (synthetic SAR scenes). Switch Data Source to see real
+            Sentinel-1 detections.
+          </div>
+        )}
 
         {/* PANEL 1: KPI Telemetry Strip */}
         <section className="panel" aria-labelledby="kpi-heading">
@@ -353,14 +448,16 @@ export default function App() {
                       <td>{v.eta_minutes_effective ?? "—"}</td>
                       <td>{Math.round(v.confidence * 100)}%</td>
                       <td>
-                        <span className={`badge ${v.ais_matched ? "badge-ok" : "badge-dark"}`}>
-                          {v.ais_matched ? "MATCHED" : v.alert_flag}
+                        <span className={`badge ${v.ais_matched ? "badge-ok" : v.alert_flag === "AIS_NOT_CHECKED" ? "badge-wait" : "badge-dark"}`}>
+                          {v.ais_matched ? "MATCHED" : v.alert_flag === "AIS_NOT_CHECKED" ? "AIS N/A" : v.alert_flag}
                         </span>
                       </td>
                       <td>
                         {v.ais_matched
                           ? `${v.matched_ais_name} (${v.matched_ais_mmsi})`
-                          : "No Transponder Match"}
+                          : v.alert_flag === "AIS_NOT_CHECKED"
+                            ? "Not checked (real scene)"
+                            : "No Transponder Match"}
                       </td>
                     </tr>
                   ))}
@@ -369,6 +466,18 @@ export default function App() {
             </div>
           ) : null}
         </section>
+
+        {/* Real Sentinel-1 observations */}
+        {data.real_data?.available ? (
+          <RealDataPanel
+            ports={allPorts}
+            realData={data.real_data}
+            focusPortId={selectedPortId}
+            onRefreshPort={handleRefreshRealPort}
+            onRefreshAll={handleRefreshAllReal}
+            busyPort={busyRealPort}
+          />
+        ) : null}
 
         {/* PANEL 3: Onboard AI Live Simulator */}
         <SimulatorPanel
@@ -466,8 +575,8 @@ export default function App() {
                           <td>{v.zone}</td>
                           <td>{v.eta_minutes_effective}</td>
                           <td>
-                            <span className={`badge ${v.ais_matched ? "badge-ok" : "badge-dark"}`}>
-                              {v.ais_matched ? "Verified" : "DARK VESSEL"}
+                            <span className={`badge ${v.ais_matched ? "badge-ok" : v.alert_flag === "AIS_NOT_CHECKED" ? "badge-wait" : "badge-dark"}`}>
+                              {v.ais_matched ? "Verified" : v.alert_flag === "AIS_NOT_CHECKED" ? "AIS N/A" : "DARK VESSEL"}
                             </span>
                           </td>
                         </tr>

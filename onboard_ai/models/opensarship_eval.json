@@ -10,14 +10,14 @@
   ],
   "train_chips": 238,
   "training_rows": {
-    "real_ship_rows": 831,
-    "real_clutter_rows_used": 1662,
-    "real_clutter_rows_available": 3863,
+    "real_ship_rows": 490,
+    "real_clutter_rows_used": 980,
+    "real_clutter_rows_available": 2958,
     "real_rows_by_class": {
-      "CLUTTER": 1662,
+      "CLUTTER": 980,
       "FISHING_BOAT": 0,
       "FERRY": 0,
-      "CARGO_VESSEL": 831
+      "CARGO_VESSEL": 490
     }
   },
   "size_class_note": "OpenSARShip has no ship-type labels; classes are length bands (<20 m fishing, 20-50 m ferry, >=50 m cargo) from the rotated boxes.",
@@ -25,24 +25,24 @@
     "chips": 200,
     "area_km2": 5242.9,
     "ships": 1068,
-    "cfar_recall": 0.996,
-    "ship_recall": 0.995,
-    "precision": 0.488,
-    "false_alarms": 1514,
-    "false_alarms_per_100_km2": 28.88,
-    "size_class_accuracy": 1.0,
-    "median_length_error_m": 23.5
+    "cfar_recall": 0.994,
+    "ship_recall": 0.991,
+    "precision": 0.536,
+    "false_alarms": 917,
+    "false_alarms_per_100_km2": 17.49,
+    "size_class_accuracy": 0.998,
+    "median_length_error_m": 21.6
   },
   "test_opensarship_model": {
     "chips": 200,
     "area_km2": 5242.9,
     "ships": 1068,
-    "cfar_recall": 0.996,
-    "ship_recall": 0.964,
-    "precision": 0.692,
-    "false_alarms": 533,
-    "false_alarms_per_100_km2": 10.17,
+    "cfar_recall": 0.994,
+    "ship_recall": 0.983,
+    "precision": 0.712,
+    "false_alarms": 426,
+    "false_alarms_per_100_km2": 8.13,
     "size_class_accuracy": 1.0,
-    "median_length_error_m": 23.4
+    "median_length_error_m": 21.7
   }
 }
