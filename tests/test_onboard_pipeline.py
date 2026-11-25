@@ -12,6 +12,7 @@ from onboard_ai.cfar_onnx_detector import (
     CLASS_NAMES,
     N_FEATURES,
     MODEL_PATH,
+    classify_detections,
     detect_targets,
     get_classifier,
 )
@@ -128,6 +129,76 @@ def test_land_mask_suppresses_bright_land():
     img[180, 100] = 9000                  # a real ship at sea
     dets = detect_targets(img, land)
     assert len(dets) == 1 and abs(dets[0].px - 100) < 1 and abs(dets[0].py - 180) < 1
+
+
+def test_onboard_inference_is_fast(sweep):
+    # 4-port C-band sweep; ~90 ms/port on a laptop CPU. Generous bound to avoid flaky CI.
+    assert sweep[0]["telemetry"]["telemetry_header"]["onboard_inference_time_ms"] < 1500
+
+
+# ------------------------------------------------------------------ X-band mode
+
+def _hits_in_footprint(tile, pairs, use_x):
+    kept = [(d, lab) for d, lab in zip(*_classified(tile)) if lab != "CLUTTER"]
+    hits = 0
+    for v, x, y in pairs:
+        px, py = (x, y) if use_x else (v.px, v.py)
+        r = 3 + v.length_m / tile.geo.pixel_m / 2
+        hits += any((d.px - px) ** 2 + (d.py - py) ** 2 < r * r and lab == "FISHING_BOAT" for d, lab in kept)
+    return hits
+
+
+def _classified(tile):
+    dets = detect_targets(tile.image, tile.cfar_mask, tile.geo.pixel_m, land_buffered=True)
+    labels, _ = classify_detections(dets)
+    return dets, labels
+
+
+def test_xband_spotlight_finds_more_small_boats_than_cband():
+    c_hits = x_hits = total = 0
+    for seed, pid in enumerate(PORT_IDS):
+        p = simulate_pass(pid, "MODERATE", "06:00", seed=200 + seed, sensor_mode="X-BAND")
+        ctile, xtile = p.tiles[0], p.tiles[-1]
+        assert xtile.sensor == "X-BAND" and xtile.geo.pixel_m == 3.0
+        pairs = []
+        for v in ctile.truth:
+            if v.vessel_type != "FISHING_BOAT":
+                continue
+            x, y = xtile.geo.latlon_to_pixel(*ctile.geo.pixel_to_latlon(v.px, v.py))
+            if 20 <= x < xtile.image.shape[1] - 20 and 20 <= y < xtile.image.shape[0] - 20:
+                pairs.append((v, x, y))
+        total += len(pairs)
+        c_hits += _hits_in_footprint(ctile, pairs, use_x=False)
+        x_hits += _hits_in_footprint(xtile, pairs, use_x=True)
+    assert total >= 10
+    assert x_hits >= 0.7 * total
+    assert x_hits > c_hits
+
+
+def test_xband_run_pass_packet_and_previews(tmp_path):
+    result = run_pass("IN-KAK", "MODERATE", "06:00", output_path=str(tmp_path / "x.json"), seed=8,
+                      sensor_mode="X-BAND")
+    _validate(result["telemetry"])
+    assert result["telemetry"]["telemetry_header"]["sensor_mode"] == "X-BAND_SAR_HIGH_RES"
+    assert result["xband_overlay_preview"] is not None
+    assert result["xband_overlay_preview"].shape == (*result["xband_raw_preview"].shape, 3)
+
+
+def test_xband_does_not_double_count_vessels(tmp_path):
+    p = simulate_pass("IN-KRW", "CALM", "12:00", seed=11)
+    n_true = sum(len(t.truth) for t in p.tiles)
+    c = run_pass("IN-KRW", "CALM", "12:00", output_path=str(tmp_path / "c.json"), seed=11)
+    x = run_pass("IN-KRW", "CALM", "12:00", output_path=str(tmp_path / "x.json"), seed=11, sensor_mode="X-BAND")
+    assert x["stats"]["vessels_detected"] <= n_true + 2
+    assert abs(x["stats"]["vessels_detected"] - c["stats"]["vessels_detected"]) <= 3
+
+
+def test_single_xband_pixel_is_too_small_to_be_a_vessel():
+    img = np.full((300, 300), 100, dtype=np.uint16)
+    img[150, 150] = 20000  # one 3 m pixel: physically shorter than any vessel class
+    dets = detect_targets(img, None, pixel_m=3.0)
+    labels, _ = classify_detections(dets)
+    assert labels and all(lab == "CLUTTER" for lab in labels)
 
 
 # ------------------------------------------------------------------ ONNX model

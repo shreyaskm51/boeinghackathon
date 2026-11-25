@@ -41,12 +41,16 @@ log = logging.getLogger("edgeport.onboard.sim")
 
 PIXEL_M = 10.0                 # C-band IW GRD-like ground sampling distance
 TILE_SIZE = 2048               # coastal ROI tile (2048^2 x 2 bytes = 8.39 MB)
+XBAND_PIXEL_M = 3.0            # X-band high-resolution spotlight GSD (PRD: 1-3 m)
+XBAND_TILE_SIZE = 3072         # 9.2 km x 9.2 km spotlight over the inner harbour approach
+XBAND_LAND_PX = 170            # ~0.5 km of shoreline included so berths are imaged
 OFFSHORE_TILE_SIZE = 512
 N_OFFSHORE_TILES = 3
 FULL_SWATH_MB = 142.4          # full-swath scene the ROI is cropped from (PRD 4.2 Step A)
 COAST_COL = {"WEST": 1500, "EAST": 548}  # coastline column in the coastal tile
 PASS_TIMES_IST = ("06:00", "12:00", "18:00", "23:30")
 QUICKLOOK_DB_RANGE = 25.0      # dB span assumed for 8-bit uploaded quicklook PNGs
+LAND_BUFFER_PX = 2             # CFAR exclusion buffer around the coastline mask
 
 VESSEL_LENGTH_M = {
     "FISHING_BOAT": (10.0, 15.0),
@@ -117,6 +121,16 @@ def normalize_pass_time(value: str) -> str:
     return v
 
 
+def normalize_sensor_mode(value: str) -> str:
+    """``"C"``, ``"c_band"``, ``"C-BAND_SAR_ALL_WEATHER"`` -> ``"C-BAND"``; same for X."""
+    v = value.strip().upper().replace("_", "-").replace(" ", "-")
+    if v.startswith("X"):
+        return "X-BAND"
+    if v.startswith("C"):
+        return "C-BAND"
+    raise ValueError(f"Unknown sensor mode {value!r}; use C-BAND or X-BAND")
+
+
 @dataclass
 class GroundTruthVessel:
     vessel_type: str
@@ -124,6 +138,14 @@ class GroundTruthVessel:
     px: float
     py: float
     heading_deg: float
+    density: float = 0.0
+
+
+def buffer_land_mask(land_mask: np.ndarray) -> np.ndarray:
+    """Coastline mask grown by :data:`LAND_BUFFER_PX` (the onboard cached CFAR exclusion mask)."""
+    if not land_mask.any():
+        return land_mask
+    return ndimage.binary_dilation(land_mask, iterations=LAND_BUFFER_PX)
 
 
 @dataclass
@@ -133,6 +155,12 @@ class SceneTile:
     land_mask: np.ndarray | None      # bool, True = land
     geo: GeoTransform
     truth: list[GroundTruthVessel] = field(default_factory=list)
+    sensor: str = "C-BAND"            # "C-BAND" (10 m) or "X-BAND" (3 m spotlight)
+    cfar_mask: np.ndarray | None = None  # pre-buffered land mask, cached with the coastline
+
+    def __post_init__(self) -> None:
+        if self.cfar_mask is None and self.land_mask is not None:
+            self.cfar_mask = buffer_land_mask(self.land_mask)
 
     @property
     def nbytes(self) -> int:
@@ -143,6 +171,7 @@ class SceneTile:
         raw_raster = self.image
         self.image = None
         self.land_mask = None
+        self.cfar_mask = None
         del raw_raster
 
 
@@ -225,9 +254,9 @@ def _count(rng, lo_hi: tuple[float, float], factor: float) -> int:
 
 def _add_vessel(img, truth, rng, vtype, cx, cy, heading, length_m=None):
     length_m = length_m if length_m is not None else rng.uniform(*VESSEL_LENGTH_M[vtype])
-    render_vessel(img, cx, cy, length_m / PIXEL_M, vessel_width_px(length_m), heading,
-                  rng.uniform(*VESSEL_RCS_DENSITY[vtype]), rng)
-    truth.append(GroundTruthVessel(vtype, float(length_m), float(cx), float(cy), float(heading)))
+    density = rng.uniform(*VESSEL_RCS_DENSITY[vtype])
+    render_vessel(img, cx, cy, length_m / PIXEL_M, vessel_width_px(length_m), heading, density, rng)
+    truth.append(GroundTruthVessel(vtype, float(length_m), float(cx), float(cy), float(heading), float(density)))
 
 
 # --------------------------------------------------------------------------- scene tiles
@@ -320,10 +349,17 @@ def _coastal_tile(port: dict, state: SeaState, pass_time: str, rng) -> SceneTile
             _add_vessel(img, truth, rng, "FERRY", *pos, heading)
             occupied.append(pos)
 
-    # --- coastal fishing fleet
+    # --- coastal fishing fleet: half clustered on the harbour approach lanes, half spread out
     for _ in range(_count(rng, prof["fishing"], fish_factor)):
         def fish_pos():
-            p = sea_point()
+            if rng.random() < 0.5:
+                x = coast_col + seaward * (20 + abs(rng.normal(0, 250)))
+                p = (x, n / 2 + rng.normal(0, 300))
+                if not (20 <= p[0] < n - 20 and 20 <= p[1] < n - 20) or \
+                        (p[0] - coast_cols[int(p[1])]) * seaward < 10:
+                    return None
+            else:
+                p = sea_point()
             if p is None or in_rect(p, (ax0, ay0, ax1, ay1), 10) or in_rect(p, (bx0, by0, bx1, by1), 10):
                 return None
             return p
@@ -365,18 +401,73 @@ def _offshore_tiles(port: dict, state: SeaState, pass_time: str, rng) -> list[Sc
     return tiles
 
 
+def _xband_spotlight(port: dict, state: SeaState, coastal: SceneTile, rng) -> SceneTile:
+    """3 m X-band spotlight over the inner approach, imaging the *same* vessels as ``coastal``.
+
+    Covers ~0.5 km of shoreline (berths) and ~5.6 km seaward, 6.1 km along-shore, centred on
+    the port. At 3 m a 12 m fishing boat spans ~4 x 1 fully-resolved pixels instead of one
+    partially-filled 10 m pixel, so small craft survive rough seas far better.
+    """
+    n = XBAND_TILE_SIZE
+    coast = port["coast"]
+    x_coast_col = n - XBAND_LAND_PX if coast == "WEST" else XBAND_LAND_PX
+    geo = GeoTransform.anchored(port["lat"], coastline_lon(port), x_coast_col, n // 2, XBAND_PIXEL_M)
+
+    # Land mask: resample the cached C-band coastline onto the 3 m grid (nearest neighbour).
+    cgeo = coastal.geo
+    lats = geo.origin_lat - np.arange(n) * geo.dlat
+    lons = geo.origin_lon + np.arange(n) * geo.dlon
+    crow = np.clip(np.round((cgeo.origin_lat - lats) / cgeo.dlat).astype(int), 0, coastal.land_mask.shape[0] - 1)
+    ccol = np.clip(np.round((lons - cgeo.origin_lon) / cgeo.dlon).astype(int), 0, coastal.land_mask.shape[1] - 1)
+    land = coastal.land_mask[crow[:, None], ccol[None, :]]
+
+    img = sea_clutter(rng, (n, n), state)
+    land_vals = (420.0 * rng.gamma(2.0, 0.5, size=(n, n))).astype(np.float32)
+    img[land] = land_vals[land]
+    ly, lx = np.nonzero(land)
+    if ly.size:
+        pick = rng.choice(ly.size, size=min(1500, ly.size), replace=False)
+        img[ly[pick], lx[pick]] = rng.uniform(15000, 45000, size=pick.size)
+        shore = land & ~ndimage.binary_erosion(land, iterations=4)        # quay-side cranes
+        sy, sx = np.nonzero(shore)
+        if sy.size:
+            pick = rng.choice(sy.size, size=min(250, sy.size), replace=False)
+            img[sy[pick], sx[pick]] = 40000.0
+
+    truth: list[GroundTruthVessel] = []
+    for v in coastal.truth:
+        lat, lon = cgeo.pixel_to_latlon(v.px, v.py)
+        x, y = geo.latlon_to_pixel(lat, lon)
+        half = v.length_m / XBAND_PIXEL_M / 2 + 2
+        if -half <= x < n + half and -half <= y < n + half:
+            render_vessel(img, x, y, v.length_m / XBAND_PIXEL_M, vessel_width_px(v.length_m, XBAND_PIXEL_M),
+                          v.heading_deg, v.density, rng)
+            if 0 <= x < n and 0 <= y < n:
+                truth.append(GroundTruthVessel(v.vessel_type, v.length_m, float(x), float(y), v.heading_deg, v.density))
+    image = np.clip(img, 0, 65535).astype(np.uint16)
+    return SceneTile("XBAND-SPOT", image, land, geo, truth, sensor="X-BAND")
+
+
 def simulate_pass(port: dict | str, sea_state: str = "MODERATE", pass_time_ist: str = "18:00",
-                  seed: int | None = None) -> OrbitalPass:
-    """Synthesize one LEO SAR pass (coastal ROI + offshore EEZ tiles) over ``port``."""
+                  seed: int | None = None, sensor_mode: str = "C-BAND") -> OrbitalPass:
+    """Synthesize one LEO SAR pass over ``port``.
+
+    ``C-BAND``: coastal ROI + offshore EEZ tiles at 10 m.
+    ``X-BAND``: the same, plus a 3 m X-band spotlight tile over the inner harbour approach.
+    """
     port = get_port(port) if isinstance(port, str) else port
     state = SEA_STATES[normalize_sea_state(sea_state)]
     pass_time = normalize_pass_time(pass_time_ist)
+    sensor = normalize_sensor_mode(sensor_mode)
     rng = np.random.default_rng(seed)
-    tiles = [_coastal_tile(port, state, pass_time, rng), *_offshore_tiles(port, state, pass_time, rng)]
+    coastal = _coastal_tile(port, state, pass_time, rng)
+    tiles = [coastal, *_offshore_tiles(port, state, pass_time, rng)]
+    if sensor == "X-BAND":
+        tiles.append(_xband_spotlight(port, state, coastal, rng))
     orbital = OrbitalPass(port["port_id"], state.name, pass_time, "SIMULATED", tiles)
-    log.info("Simulated %s pass %s IST (%s): %d tiles, %.2f MB ROI, %d true vessels",
-             port["port_id"], pass_time, state.name, len(tiles), orbital.roi_bytes / 1e6,
-             sum(len(t.truth) for t in tiles))
+    log.info("Simulated %s %s pass %s IST (%s): %d tiles, %.2f MB ROI, %d true vessels",
+             port["port_id"], sensor, pass_time, state.name, len(tiles), orbital.roi_bytes / 1e6,
+             sum(len(t.truth) for t in tiles if t.sensor == "C-BAND"))
     return orbital
 
 
@@ -455,11 +546,12 @@ def _otsu(values: np.ndarray, bins: int = 256) -> tuple[float, float, float]:
 
 
 def load_uploaded_image(data: bytes, port: dict | str, sea_state: str = "MODERATE",
-                        pass_time_ist: str = "18:00") -> OrbitalPass:
+                        pass_time_ist: str = "18:00", pixel_m: float = PIXEL_M) -> OrbitalPass:
     """Load a user-supplied Sentinel-1 GeoTIFF / PNG / 16-bit TIFF / ``.npy`` scene.
 
     Georeferencing: a GeoTIFF in EPSG:4326 uses its own transform (needs optional ``rasterio``);
-    anything else is assumed to be 10 m GSD, centred on the selected port.
+    anything else is assumed to have ``pixel_m`` GSD (10 m C-band by default, 3 m for X-band)
+    and to be centred on the selected port.
     """
     port = get_port(port) if isinstance(port, str) else port
     arr, geo = None, None
@@ -507,9 +599,11 @@ def load_uploaded_image(data: bytes, port: dict | str, sea_state: str = "MODERAT
                            dlat=geo.dlat * f, dlon=geo.dlon * f, pixel_m=geo.pixel_m * f)
     image = _to_uint16(arr)
     if geo is None:
-        geo = GeoTransform.anchored(port["lat"], port["lon"], image.shape[1] / 2, image.shape[0] / 2, PIXEL_M)
+        f = full_shape[0] // image.shape[0]
+        geo = GeoTransform.anchored(port["lat"], port["lon"], image.shape[1] / 2, image.shape[0] / 2, pixel_m * f)
     land = estimate_land_mask(image)
-    tile = SceneTile("UPLOAD", image, land, geo, [])
+    sensor = "X-BAND" if geo.pixel_m < 5.0 else "C-BAND"
+    tile = SceneTile("UPLOAD", image, land, geo, [], sensor=sensor)
     log.info("Loaded uploaded scene %s for %s (%.2f MB, land %.1f%%)", image.shape, port["port_id"],
              image.nbytes / 1e6, 100 * land.mean())
     return OrbitalPass(port["port_id"], normalize_sea_state(sea_state), normalize_pass_time(pass_time_ist),

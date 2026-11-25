@@ -29,21 +29,25 @@ from pathlib import Path
 
 import numpy as np
 
-from onboard_ai.cfar_onnx_detector import Detection, detect_targets, get_classifier
+from onboard_ai.cfar_onnx_detector import Detection, classify_detections, detect_targets, get_classifier
 from onboard_ai.georeferencer import (
     VesselRecord,
     georeference,
     get_port,
+    haversine_km,
     load_ports_config,
     port_code,
 )
 from onboard_ai.sar_simulator import (
     FULL_SWATH_MB,
+    PIXEL_M,
+    XBAND_PIXEL_M,
     OrbitalPass,
     SceneTile,
     load_uploaded_image,
     normalize_pass_time,
     normalize_sea_state,
+    normalize_sensor_mode,
     simulate_pass,
     to_display_uint8,
 )
@@ -55,7 +59,7 @@ DEFAULT_OUTPUT = "outputs/latest_telemetry.json"
 CHIP_DIR = ROOT / "outputs" / "chips"
 
 SATELLITE_ID = "EOS-EDGEPORT-LEO-04"
-SENSOR_MODE = "C-BAND_SAR_ALL_WEATHER"
+SENSOR_MODE_LABEL = {"C-BAND": "C-BAND_SAR_ALL_WEATHER", "X-BAND": "X-BAND_SAR_HIGH_RES"}
 MONITORING_LIMIT_KM = 370
 PACKET_LIMIT_BYTES = 3 * 1024          # hard downlink budget (< 3 KB)
 PACKET_BUDGET_BYTES = PACKET_LIMIT_BYTES - 32  # headroom for the self-referencing size fields
@@ -174,6 +178,33 @@ def build_packet(header: dict, summaries: list[dict], per_port: list[list[Vessel
     return packet
 
 
+def _merge_sensors(found: list[tuple[SceneTile, Detection, VesselRecord]]
+                   ) -> list[tuple[SceneTile, Detection, VesselRecord]]:
+    """Inside an X-band spotlight footprint the 3 m detections replace the 10 m ones.
+
+    A C-band detection is dropped if it lies inside the footprint, or within
+    ``max(60 m, 0.6 x length)`` of an X-band detection (ships straddling the footprint edge).
+    """
+    xtiles = [t for t in {id(t): t for t, _, _ in found}.values() if t.sensor == "X-BAND"]
+    if not xtiles:
+        return found
+    boxes = []
+    for t in xtiles:
+        h, w = t.image.shape
+        lat_top, lon_left = t.geo.pixel_to_latlon(-0.5, -0.5)
+        lat_bot, lon_right = t.geo.pixel_to_latlon(w - 0.5, h - 0.5)
+        boxes.append((lat_bot, lat_top, lon_left, lon_right))
+    xrecs = [r for t, _, r in found if t.sensor == "X-BAND"]
+
+    def shadowed(r: VesselRecord) -> bool:
+        if any(b0 <= r.latitude <= b1 and l0 <= r.longitude <= l1 for b0, b1, l0, l1 in boxes):
+            return True
+        return any(haversine_km(r.latitude, r.longitude, x.latitude, x.longitude) * 1000
+                   < max(60.0, 0.6 * max(r.estimated_length_m, x.estimated_length_m)) for x in xrecs)
+
+    return [(t, d, r) for t, d, r in found if t.sensor == "X-BAND" or not shadowed(r)]
+
+
 def _chip_png(tile: SceneTile, det: Detection) -> bytes:
     from PIL import Image
 
@@ -225,6 +256,7 @@ def run_pass(
     output_path: str = DEFAULT_OUTPUT,
     *,
     seed: int | None = None,
+    sensor_mode: str = "C-BAND",
 ) -> dict:
     """Run one onboard orbital pass and write the telemetry packet.
 
@@ -237,14 +269,19 @@ def run_pass(
         uploaded_image: optional raw bytes of a ``.tif`` / ``.png`` / ``.npy`` SAR scene.
         output_path: where to write the packet (relative paths are relative to the repo root).
         seed: optional RNG seed; by default each (pass time, sea state) is reproducible.
+        sensor_mode: ``"C-BAND"`` (10 m, default) or ``"X-BAND"`` - adds a 3 m X-band
+            spotlight over each harbour's inner approach for small craft (an uploaded image is
+            then assumed to be 3 m GSD).
 
     Returns:
         ``{"telemetry": packet dict, "raw_preview": uint8 HxW, "overlay_preview": uint8 HxWx3,
+        "xband_raw_preview": uint8 HxW | None, "xband_overlay_preview": uint8 HxWx3 | None,
         "alert_chips": list[PNG bytes], "stats": {...}}``
     """
     t_start = time.perf_counter()
     sea = normalize_sea_state(sea_state)
     pass_time = normalize_pass_time(pass_time_ist)
+    sensor = normalize_sensor_mode(sensor_mode)
     if uploaded_image is not None and port_id is None:
         port_id = "IN-KRW"
     port_ids = [get_port(port_id)["port_id"]] if port_id else [p["port_id"] for p in load_ports_config()["ports"]]
@@ -255,9 +292,10 @@ def run_pass(
     per_port: list[list[VesselRecord]] = []
     chips: list[bytes] = []
     chip_paths: list[str] = []
-    raw_preview = overlay_preview = None
+    raw_preview = overlay_preview = x_raw_preview = x_overlay_preview = None
     preview_port = None
     roi_bytes = 0
+    xband_bytes = 0
     infer_s = 0.0
     n_candidates = n_clutter = 0
 
@@ -268,16 +306,20 @@ def run_pass(
     for idx, pid in enumerate(port_ids):
         port = get_port(pid)
         if uploaded_image is not None:
-            orbital: OrbitalPass = load_uploaded_image(uploaded_image, port, sea, pass_time)
+            gsd = XBAND_PIXEL_M if sensor == "X-BAND" else PIXEL_M
+            orbital: OrbitalPass = load_uploaded_image(uploaded_image, port, sea, pass_time, pixel_m=gsd)
         else:
-            orbital = simulate_pass(port, sea, pass_time, seed=(base_seed + 7919 * idx) % 2 ** 32)
+            orbital = simulate_pass(port, sea, pass_time, seed=(base_seed + 7919 * idx) % 2 ** 32,
+                                    sensor_mode=sensor)
         roi_bytes += orbital.roi_bytes
+        if uploaded_image is None:
+            xband_bytes += sum(t.nbytes for t in orbital.tiles if t.sensor == "X-BAND")
 
         found: list[tuple[SceneTile, Detection, VesselRecord]] = []
         for tile in orbital.tiles:
             t0 = time.perf_counter()
-            dets = detect_targets(tile.image, tile.land_mask, tile.geo.pixel_m)
-            labels, conf = classifier.predict(np.stack([d.features() for d in dets])) if dets else ([], [])
+            dets = detect_targets(tile.image, tile.cfar_mask, tile.geo.pixel_m, land_buffered=True)
+            labels, conf = classify_detections(dets, classifier)
             infer_s += time.perf_counter() - t0
             n_candidates += len(dets)
             kept_here = []
@@ -292,7 +334,10 @@ def run_pass(
             if raw_preview is None:
                 raw_preview, overlay_preview = _previews(tile, kept_here)
                 preview_port = pid
+            elif tile.sensor == "X-BAND" and x_raw_preview is None and pid == preview_port:
+                x_raw_preview, x_overlay_preview = _previews(tile, kept_here)
 
+        found = _merge_sensors(found)
         records = [rec for _, _, rec in found]
         for n, rec in enumerate(sorted(records, key=_priority), start=1):
             rec.vessel_id = f"VSL-{port_code(pid)}-{n:03d}"
@@ -320,10 +365,10 @@ def run_pass(
         del orbital
         gc.collect()
 
-    raw_mb = round(FULL_SWATH_MB * len(port_ids), 1)
+    raw_mb = round(FULL_SWATH_MB * len(port_ids) + xband_bytes / 1e6, 1)
     header = {
         "satellite_id": SATELLITE_ID,
-        "sensor_mode": SENSOR_MODE,
+        "sensor_mode": SENSOR_MODE_LABEL[sensor],
         "pass_timestamp_utc": _pass_timestamp_utc(pass_time),
         "monitoring_limit_km": MONITORING_LIMIT_KM,
         "raw_scene_size_mb": raw_mb,
@@ -356,15 +401,18 @@ def run_pass(
         "preview_port_id": preview_port,
         "output_path": str(out),
         "source": "UPLOAD" if uploaded_image is not None else "SIMULATED",
+        "sensor_mode": sensor,
     }
-    log.info("Pass %s IST %s over %s: raw %.1f MB -> JSON %.2f KB (%.2f%% bandwidth saved), "
+    log.info("Pass %s IST %s %s over %s: raw %.1f MB -> JSON %.2f KB (%.2f%% bandwidth saved), "
              "%d vessels detected, %d in packet, inference %.1f ms",
-             pass_time, sea, ",".join(port_ids), raw_mb, len(payload) / 1024, stats["bandwidth_saved_pct"],
-             detected, len(packet["vessels"]), stats["onboard_inference_time_ms"])
+             pass_time, sea, sensor, ",".join(port_ids), raw_mb, len(payload) / 1024,
+             stats["bandwidth_saved_pct"], detected, len(packet["vessels"]), stats["onboard_inference_time_ms"])
     return {
         "telemetry": packet,
         "raw_preview": raw_preview,
         "overlay_preview": overlay_preview,
+        "xband_raw_preview": x_raw_preview,
+        "xband_overlay_preview": x_overlay_preview,
         "alert_chips": chips,
         "stats": stats,
     }
@@ -376,6 +424,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--sea-state", default="MODERATE", help="CALM | MODERATE | MONSOON_ROUGH")
     parser.add_argument("--pass-time", default="18:00", help="06:00 | 12:00 | 18:00 | 23:30 (IST)")
     parser.add_argument("--upload", default=None, help="path to a .tif/.png/.npy SAR scene")
+    parser.add_argument("--sensor-mode", default="C-BAND", help="C-BAND (10 m) | X-BAND (adds 3 m spotlight)")
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
     args = parser.parse_args(argv)
@@ -383,9 +432,11 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s")
     logging.getLogger().handlers[0].addFilter(lambda r: r.name != "root")  # quantizer chatter
     upload = Path(args.upload).read_bytes() if args.upload else None
-    result = run_pass(args.port, args.sea_state, args.pass_time, upload, args.output, seed=args.seed)
+    result = run_pass(args.port, args.sea_state, args.pass_time, upload, args.output, seed=args.seed,
+                      sensor_mode=args.sensor_mode)
     s = result["stats"]
-    print(f"\nRaw SAR {s['raw_scene_size_mb']} MB  ->  JSON {s['downlinked_json_bytes'] / 1024:.2f} KB  "
+    print(f"\n[{s['sensor_mode']}] Raw SAR {s['raw_scene_size_mb']} MB  ->  JSON "
+          f"{s['downlinked_json_bytes'] / 1024:.2f} KB  "
           f"({s['bandwidth_saved_pct']}% bandwidth saved)")
     print(f"Onboard inference {s['onboard_inference_time_ms']} ms | {s['vessels_detected']} vessels detected, "
           f"{s['vessels_in_packet']} listed in packet, {s['rejected_as_clutter']} clutter rejected")
