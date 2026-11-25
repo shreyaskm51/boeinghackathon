@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "EdgePort orbital telemetry packet (< 3 KB)",
+  "title": "EdgePort orbital telemetry packet (< 200 KB)",
   "description": "Written by onboard_ai/edge_pipeline.py (Person A), read by ground_station/ and app.py (Person B). Change only by mutual agreement.",
   "type": "object",
   "required": ["telemetry_header", "ports_summary", "vessels"],
@@ -17,7 +17,7 @@
         "monitoring_limit_km": {"type": "number", "const": 370},
         "raw_scene_size_mb": {"type": "number"},
         "cropped_roi_size_mb": {"type": "number"},
-        "downlinked_json_size_kb": {"type": "number", "exclusiveMaximum": 3},
+        "downlinked_json_size_kb": {"type": "number", "exclusiveMaximum": 200},
         "bandwidth_saved_pct": {"type": "number", "minimum": 99},
         "onboard_inference_time_ms": {"type": "number"},
         "sea_state": {"enum": ["CALM", "MODERATE", "MONSOON_ROUGH"]}
@@ -31,7 +31,7 @@
                      "congestion_status", "estimated_cargo_tonnage_mt",
                      "estimated_trade_value_inr_cr", "dark_vessels_detected"],
         "properties": {
-          "port_id": {"enum": ["IN-KRW", "IN-BEY", "IN-KAK", "IN-GOP"]},
+          "port_id": {"type": "string", "pattern": "^IN-[A-Z]{3}$"},
           "port_name": {"type": "string"},
           "state": {"type": "string"},
           "max_berths": {"type": "integer"},
@@ -58,7 +58,7 @@
                      "ais_matched", "eta_minutes"],
         "properties": {
           "vessel_id": {"type": "string"},
-          "port_id": {"enum": ["IN-KRW", "IN-BEY", "IN-KAK", "IN-GOP"]},
+          "port_id": {"type": "string", "pattern": "^IN-[A-Z]{3}$"},
           "vessel_type": {"enum": ["FISHING_BOAT", "FERRY", "CARGO_VESSEL"]},
           "latitude": {"type": "number"},
           "longitude": {"type": "number"},

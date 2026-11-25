@@ -12,7 +12,8 @@
 > pipeline is being built in parallel by my teammate.
 >
 > 1. `data/ais_ground_truth.json`: simulated AIS records (MMSI, name, type, lat, lon, timestamp)
->    near the 4 ports in `data/ports_config.json` — deliberately leave a few vessels from the
+>    near the 16 ports in `data/ports_config.json` (read the list from that file, never
+>    hard-code port IDs) — deliberately leave a few vessels from the
 >    sample telemetry unmatched so dark vessels show up. Add `ground_station/ais_connector.py`
 >    with an optional AISStream.io websocket fetch (API key from env var `AISSTREAM_API_KEY`,
 >    gracefully skipped if missing).
@@ -34,6 +35,9 @@
 >    try/except and fall back to the sample JSON if it's not merged yet.
 > 5. `tests/test_ground_analytics.py` (pytest): every alert ≤ 160 chars, dark vessels detected
 >    from sample data, utilization math correct.
+
+> Packet v2: up to 16 ports and a few hundred vessels per packet (< 200 KB), so the map
+> should cluster markers or filter by port.
 
 ## Done when
 - `streamlit run app.py` launches with zero errors using only `contracts/sample_telemetry.json`.
