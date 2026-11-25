@@ -10,6 +10,10 @@ venv/
 outputs/*
 !outputs/.gitkeep
 onboard_ai/models/*.onnx
+# real-data model is committed: it can't be regenerated without the OpenSARShip download
+!onboard_ai/models/vessel_classifier_opensarship.onnx
+# OpenSARShip WebDataset shards (~0.5 GB each)
+data/opensarship/
 data/sample_passes/*.npy
 data/sample_passes/*.tif
 

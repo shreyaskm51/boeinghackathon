@@ -38,31 +38,67 @@ unaffected. No caching needed on the dashboard side: the ONNX session is cached 
 | Stage | File | What it does |
 |---|---|---|
 | A | `sar_simulator.py` | 2048² uint16 C-band coastal ROI (10 m, ~8.4 MB) + 3 offshore EEZ chips, and optionally a 3072² X-band spotlight (3 m) imaging the same vessels; Gamma speckle + wave texture per sea state; land with cranes/breakwater; vessels by port profile x pass time. Upload loader for `.tif` (rasterio optional) / `.png` / `.npy`. |
-| B | `cfar_onnx_detector.py` | Cached land mask -> vectorized CA-CFAR (310 m guard / 710 m training windows, background estimated on a ~40 m grid, Pfa 1e-6, looks estimated from the scene) -> `ndimage.label` -> 9 blob features -> int8-quantized ONNX MLP trained at 10 m and 3 m (fishing / ferry / cargo / clutter) -> physical size gate. |
+| B | `cfar_onnx_detector.py` | Cached land mask -> vectorized CA-CFAR (310 m guard / 710 m training windows, background estimated on a ~40 m grid, Pfa 1e-6, looks estimated from the scene) -> `ndimage.label` -> 9 blob features -> int8-quantized ONNX MLP trained on real OpenSARShip Sentinel-1 chips + simulator chips at 10 m and 3 m (fishing / ferry / cargo / clutter) -> physical size gate. |
 | C | `georeferencer.py` | Pixel -> WGS84, length, tonnage, cross-shore distance, zone (BERTH / ANCHORAGE_QUEUE / COASTAL_APPROACH / OFFSHORE_EEZ), ETA. |
 | D | `edge_pipeline.py` | Port summaries, priority-ordered vessel list (all vessels fit the 200 KB budget; lowest priority trimmed first if ever exceeded), raster purge, alert chips, previews. |
 
+## How the classifier is trained
+`get_classifier()` uses **`models/vessel_classifier_opensarship.onnx`** (committed, ~5 KB), trained by
+`python -m onboard_ai.train_opensarship` on:
+
+1. **Real Sentinel-1 ships from OpenSARShip** (Hugging Face `sylviaHoch/OpenSARShip-Ship-Detection-Dataset`,
+   2 training shards = 238 real 10 m VV chips). Each chip runs through the exact onboard detector;
+   blobs on an annotated ship become vessel rows, blobs elsewhere become real clutter rows
+   (831 ship + 1,662 clutter rows, weighted x2). OpenSARShip has **no ship-type labels**, so the
+   class is a size class from the rotated-box length (< 20 m fishing, 20–50 m ferry, >= 50 m
+   cargo) — and all its annotated ships are cargo-sized (median 173 m).
+2. **Simulator chips** at 10 m and 3 m for fishing boats, ferries and the X-band mode, which
+   the real data does not cover.
+
+If that file is missing, a simulator-only model is generated on first boot instead.
+To retrain, download shards into `data/opensarship/` (see the module docstring) and re-run.
+Scores are saved to `models/opensarship_eval.json`.
+
+The real data also exposed a simulator flaw: simulated ships were ~2x too dim and lacked the
+bright point reflectors of real steel hulls. `render_vessel` now adds superstructure
+reflectors to ferries and cargo ships, calibrated against the real chips.
+
+**License:** OpenSARShip annotations are CC-BY-NC-SA-4.0 and the imagery is modified
+Copernicus Sentinel data, so the committed model is for **non-commercial use**, shared alike,
+with attribution: *"Contains modified Copernicus Sentinel data, processed and annotated by
+the OpenSARShip (OSSDD) dataset authors."*
+
+## Measured on real Sentinel-1 data (held-out OpenSARShip test shard)
+200 chips, 5,243 km², 1,068 annotated ships, never seen in training:
+
+| Model | Ships found | False alarms | Precision | Size class |
+|---|---|---|---|---|
+| Simulator-only | 99.5 % | 1,514 (28.9 / 100 km²) | 49 % | 100 % |
+| **OpenSARShip-trained (used)** | **96.4 %** | **533 (10.2 / 100 km²)** | **69 %** | 100 % |
+
+Median length error vs the annotated boxes: ~23 m.
+
 ## Measured on the simulator
-C-band, 12 port passes per sea state (original 4 ports x 3 seeds):
+C-band, 12 port passes per sea state (original 4 ports x 3 seeds), OpenSARShip-trained model:
 
 | Sea state | Cargo | Ferry | Fishing | False alarms / pass |
 |---|---|---|---|---|
-| Calm | 100 % | 97 % | 99 % | 0 |
-| Moderate | 100 % | 100 % | 54 % | 0.5 |
-| Monsoon rough | 100 % | 71 % | 0 % | 2.4 (wave crests read as ferries) |
+| Calm | 99 % | 100 % | 87 % | 0.1 |
+| Moderate | 96 % | 97 % | 40 % | 0.25 |
+| Monsoon rough | 95 % | 91 % | 1 % | 0.75 |
 
 X-band vs C-band on the same vessels inside the spotlight (12 passes per sea state):
 
-| Sea state | Fishing C-band -> X-band | Ferry C-band -> X-band |
-|---|---|---|
-| Calm | 14/14 -> 13/14 | 7/7 -> 6/7 |
-| Moderate | **3/11 -> 9/11** | 8/9 -> 9/9 |
-| Monsoon rough | 0/5 -> 0/5 | **6/9 -> 9/9** |
+| Sea state | Fishing C-band -> X-band | Cargo C-band -> X-band | Ferry C-band -> X-band |
+|---|---|---|---|
+| Calm | 85/96 -> **96/96** | 69/69 -> 69/69 | 9/9 -> 9/9 |
+| Moderate | 33/85 -> **64/85** | 65/70 -> **70/70** | 8/8 -> 8/8 |
+| Monsoon rough | 0/49 -> 0/49 | 60/61 -> 61/61 | 11/12 -> 11/12 |
 
-Whole-port effect, moderate sea, original 4 ports: coastal fishing boats counted rises from 33 to 45
-(of 62 true). 10–15 m boats are 1–2 pixel targets at 10 m C-band resolution and drop out in
-rough seas (PRD: C-band is reliable for vessels >= 25–30 m). X-band resolves them in moderate
-seas, but in a monsoon sea neither band can separate them from wave clutter.
+10–15 m boats are 1–2 pixel targets at 10 m C-band resolution; real radar is full of
+one-pixel clutter that looks the same, so the real-data model is (correctly) cautious with
+them. X-band resolves them in calm and moderate seas; in a monsoon sea neither band can
+separate them from wave clutter.
 
 **Speed** (laptop CPU, detection + classification): C-band ~90 ms per port
 (75 ms coastal ROI + 15 ms for three offshore chips); X-band mode ~205 ms per port.
@@ -71,8 +107,8 @@ seas, but in a monsoon sea neither band can separate them from wave clutter.
 
 | Mode | Raw SAR | Packet | Vessels | Onboard inference | Wall time incl. scene simulation |
 |---|---|---|---|---|---|
-| C-band | 2,278 MB | 87 KB (99.99 % saved) | 334, all in packet | 1.4 s | ~7 s |
-| X-band | 2,580 MB | 97 KB (99.99 % saved) | 374, all in packet | 3.2 s | ~20 s |
+| C-band | 2,278 MB | 73 KB (99.99 % saved) | 276, all in packet | 1.4 s | ~7 s |
+| X-band | 2,580 MB | 80 KB (99.99 % saved) | 305, all in packet | 3.2 s | ~20 s |
 
 Most of the wall time is *generating* the synthetic scenes, which a real satellite would not
 do. For a snappy dashboard button, run a single port (~0.5 s C-band, ~1.3 s X-band).

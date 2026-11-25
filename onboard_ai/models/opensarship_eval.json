@@ -1,0 +1,48 @@
+{
+  "dataset": "sylviaHoch/OpenSARShip-Ship-Detection-Dataset (Hugging Face)",
+  "attribution": "Contains modified Copernicus Sentinel data, processed and annotated by the OpenSARShip (OSSDD) dataset authors. Annotations CC-BY-NC-SA-4.0.",
+  "train_shards": [
+    "train-000000.tar",
+    "train-000001.tar"
+  ],
+  "test_shards": [
+    "test-000000.tar"
+  ],
+  "train_chips": 238,
+  "training_rows": {
+    "real_ship_rows": 831,
+    "real_clutter_rows_used": 1662,
+    "real_clutter_rows_available": 3863,
+    "real_rows_by_class": {
+      "CLUTTER": 1662,
+      "FISHING_BOAT": 0,
+      "FERRY": 0,
+      "CARGO_VESSEL": 831
+    }
+  },
+  "size_class_note": "OpenSARShip has no ship-type labels; classes are length bands (<20 m fishing, 20-50 m ferry, >=50 m cargo) from the rotated boxes.",
+  "test_simulator_only_model": {
+    "chips": 200,
+    "area_km2": 5242.9,
+    "ships": 1068,
+    "cfar_recall": 0.996,
+    "ship_recall": 0.995,
+    "precision": 0.488,
+    "false_alarms": 1514,
+    "false_alarms_per_100_km2": 28.88,
+    "size_class_accuracy": 1.0,
+    "median_length_error_m": 23.5
+  },
+  "test_opensarship_model": {
+    "chips": 200,
+    "area_km2": 5242.9,
+    "ships": 1068,
+    "cfar_recall": 0.996,
+    "ship_recall": 0.964,
+    "precision": 0.692,
+    "false_alarms": 533,
+    "false_alarms_per_100_km2": 10.17,
+    "size_class_accuracy": 1.0,
+    "median_length_error_m": 23.4
+  }
+}

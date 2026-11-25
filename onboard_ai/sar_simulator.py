@@ -61,7 +61,7 @@ VESSEL_LENGTH_M = {
 VESSEL_RCS_DENSITY = {
     "FISHING_BOAT": (700.0, 2200.0),
     "FERRY": (2000.0, 6000.0),
-    "CARGO_VESSEL": (3000.0, 9000.0),
+    "CARGO_VESSEL": (1200.0, 8000.0),
 }
 
 
@@ -236,10 +236,26 @@ def vessel_width_px(length_m: float, pixel_m: float = PIXEL_M) -> float:
     return max(length_m / 6.5 / pixel_m, 0.8)
 
 
+def bright_scatterer_count(vessel_type: str, length_m: float) -> int:
+    """Strong point reflectors (superstructure, masts, deck cranes) on steel hulls.
+
+    Calibrated against real Sentinel-1 ships in OpenSARShip: without them simulated ships were
+    ~2x too dim at the median and lacked the bright tail of real ships. Fishing boats (often
+    wood / FRP) get none.
+    """
+    if vessel_type == "FISHING_BOAT":
+        return 0
+    return 1 + int(length_m // 50)
+
+
 def render_vessel(img: np.ndarray, cx: float, cy: float, length_px: float, width_px: float,
                   heading_deg: float, density: float, rng: np.random.Generator,
-                  supersample: int = 8) -> None:
-    """Add a vessel signature in place, with sub-pixel area coverage."""
+                  supersample: int = 8, n_scatterers: int = 0) -> None:
+    """Add a vessel signature in place, with sub-pixel area coverage.
+
+    Hull backscatter has log-normal texture; ``n_scatterers`` strong point reflectors
+    (log-uniform x1.5-x15 brighter) are added on the hull.
+    """
     half = int(math.ceil(max(length_px, width_px) / 2)) + 2
     size = 2 * half + 1
     x0, y0 = int(round(cx)) - half, int(round(cy)) - half
@@ -251,7 +267,12 @@ def render_vessel(img: np.ndarray, cx: float, cy: float, length_px: float, width
     v = dx * math.cos(th) + dy * math.sin(th)   # across-ship
     inside = (u / (length_px / 2)) ** 2 + (v / (width_px / 2)) ** 2 <= 1.0
     cover = inside.reshape(size, supersample, size, supersample).mean(axis=(1, 3))
-    signal = cover * density * (0.6 + 0.8 * rng.random(cover.shape))
+    signal = cover * density * np.exp(rng.normal(-0.18, 0.6, cover.shape))
+    if n_scatterers:
+        hull = np.flatnonzero(cover > 0.4)
+        if hull.size:
+            picks = rng.choice(hull, size=min(n_scatterers, hull.size), replace=False)
+            signal.flat[picks] *= np.exp(rng.uniform(np.log(1.5), np.log(15.0), size=picks.size))
 
     h, w = img.shape
     ys0, xs0 = max(y0, 0), max(x0, 0)
@@ -280,7 +301,8 @@ def _count(rng, lo_hi: tuple[float, float], factor: float) -> int:
 def _add_vessel(img, truth, rng, vtype, cx, cy, heading, length_m=None):
     length_m = length_m if length_m is not None else rng.uniform(*VESSEL_LENGTH_M[vtype])
     density = rng.uniform(*VESSEL_RCS_DENSITY[vtype])
-    render_vessel(img, cx, cy, length_m / PIXEL_M, vessel_width_px(length_m), heading, density, rng)
+    render_vessel(img, cx, cy, length_m / PIXEL_M, vessel_width_px(length_m), heading, density, rng,
+                  n_scatterers=bright_scatterer_count(vtype, length_m))
     truth.append(GroundTruthVessel(vtype, float(length_m), float(cx), float(cy), float(heading), float(density)))
 
 
@@ -466,7 +488,8 @@ def _xband_spotlight(port: dict, state: SeaState, coastal: SceneTile, rng) -> Sc
         half = v.length_m / XBAND_PIXEL_M / 2 + 2
         if -half <= x < n + half and -half <= y < n + half:
             render_vessel(img, x, y, v.length_m / XBAND_PIXEL_M, vessel_width_px(v.length_m, XBAND_PIXEL_M),
-                          v.heading_deg, v.density, rng)
+                          v.heading_deg, v.density, rng,
+                          n_scatterers=bright_scatterer_count(v.vessel_type, v.length_m))
             if 0 <= x < n and 0 <= y < n:
                 truth.append(GroundTruthVessel(v.vessel_type, v.length_m, float(x), float(y), v.heading_deg, v.density))
     image = np.clip(img, 0, 65535).astype(np.uint16)

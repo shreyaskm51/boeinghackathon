@@ -192,12 +192,20 @@ def test_xband_run_pass_packet_and_previews(tmp_path):
 
 
 def test_xband_does_not_double_count_vessels(tmp_path):
+    from onboard_ai.georeferencer import haversine_km
+
     p = simulate_pass("IN-KRW", "CALM", "12:00", seed=11)
     n_true = sum(len(t.truth) for t in p.tiles)
     c = run_pass("IN-KRW", "CALM", "12:00", output_path=str(tmp_path / "c.json"), seed=11)
     x = run_pass("IN-KRW", "CALM", "12:00", output_path=str(tmp_path / "x.json"), seed=11, sensor_mode="X-BAND")
     assert x["stats"]["vessels_detected"] <= n_true + 2
-    assert abs(x["stats"]["vessels_detected"] - c["stats"]["vessels_detected"]) <= 3
+    assert x["stats"]["vessels_detected"] >= c["stats"]["vessels_detected"] - 2
+    vessels = x["telemetry"]["vessels"]            # every vessel is in the 200 KB packet
+    assert len(vessels) == x["stats"]["vessels_detected"]
+    for i, a in enumerate(vessels):              # no vessel reported twice (C-band + X-band)
+        for b in vessels[i + 1:]:
+            gap_m = haversine_km(a["latitude"], a["longitude"], b["latitude"], b["longitude"]) * 1000
+            assert gap_m > 0.5 * max(a["estimated_length_m"], b["estimated_length_m"], 40.0)
 
 
 def test_single_xband_pixel_is_too_small_to_be_a_vessel():

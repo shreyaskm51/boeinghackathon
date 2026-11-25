@@ -31,6 +31,7 @@ from scipy.stats import gamma
 from onboard_ai.sar_simulator import (
     LAND_BUFFER_PX,
     PIXEL_M,
+    bright_scatterer_count,
     buffer_land_mask,
     SEA_STATES,
     VESSEL_LENGTH_M,
@@ -44,6 +45,10 @@ from onboard_ai.sar_simulator import (
 log = logging.getLogger("edgeport.onboard.detector")
 
 MODEL_PATH = Path(__file__).resolve().parent / "models" / "vessel_classifier.onnx"
+# Trained on real Sentinel-1 chips (OpenSARShip) + simulator chips by onboard_ai/train_opensarship.py.
+# Committed to the repo because it cannot be regenerated without the ~1.5 GB dataset download;
+# preferred over the simulator-only MODEL_PATH whenever it is present and compatible.
+OPENSARSHIP_MODEL_PATH = MODEL_PATH.with_name("vessel_classifier_opensarship.onnx")
 CLASS_NAMES = ("CLUTTER", "FISHING_BOAT", "FERRY", "CARGO_VESSEL")
 FEATURE_NAMES = ("length_m", "width_m", "log10_area_m2", "log10_peak_scr", "log10_sum_scr", "elongation",
                  "log10_excess_over_threshold", "log10_neighbour_scr", "log10_pixel_m")
@@ -252,7 +257,8 @@ def build_training_set(n_per_class: int = 260, seed: int = 1234) -> tuple[np.nda
                 length = rng.uniform(*VESSEL_LENGTH_M[cls])
                 cx, cy = size / 2 + rng.uniform(-0.5, 0.5), size / 2 + rng.uniform(-0.5, 0.5)
                 render_vessel(chip, cx, cy, length / gsd, vessel_width_px(length, gsd), rng.uniform(0, 360),
-                              rng.uniform(*VESSEL_RCS_DENSITY[cls]), rng)
+                              rng.uniform(*VESSEL_RCS_DENSITY[cls]), rng,
+                              n_scatterers=bright_scatterer_count(cls, length))
                 dets = detect_targets(chip, None, gsd)
                 if not dets:
                     continue
@@ -278,8 +284,14 @@ def build_training_set(n_per_class: int = 260, seed: int = 1234) -> tuple[np.nda
     return np.vstack(X).astype(np.float32), np.asarray(y, dtype=np.int64)
 
 
-def train_and_export(path: Path = MODEL_PATH, seed: int = 1234) -> Path:
-    """Train the MLP, export to ONNX with skl2onnx and int8-quantize it with ONNX Runtime."""
+def train_and_export(path: Path = MODEL_PATH, seed: int = 1234,
+                     extra_data: tuple[np.ndarray, np.ndarray] | None = None,
+                     doc: str = "simulator chips") -> Path:
+    """Train the MLP, export to ONNX with skl2onnx and int8-quantize it with ONNX Runtime.
+
+    ``extra_data`` = ``(X, y)`` rows (e.g. real OpenSARShip detections) appended to the
+    simulator training set.
+    """
     from skl2onnx import convert_sklearn
     from skl2onnx.common.data_types import FloatTensorType
     from sklearn.neural_network import MLPClassifier
@@ -287,6 +299,9 @@ def train_and_export(path: Path = MODEL_PATH, seed: int = 1234) -> Path:
     from sklearn.preprocessing import StandardScaler
 
     X, y = build_training_set(seed=seed)
+    if extra_data is not None and len(extra_data[1]):
+        X = np.vstack([X, np.asarray(extra_data[0], dtype=np.float32)])
+        y = np.concatenate([y, np.asarray(extra_data[1], dtype=np.int64)])
     model = Pipeline([
         ("scale", StandardScaler()),
         ("mlp", MLPClassifier(hidden_layer_sizes=(32, 16), max_iter=1500, random_state=seed)),
@@ -302,7 +317,7 @@ def train_and_export(path: Path = MODEL_PATH, seed: int = 1234) -> Path:
         options={MLPClassifier: {"zipmap": False}},
         target_opset={"": 17, "ai.onnx.ml": 3},
     )
-    onx.doc_string = "EdgePort vessel classifier. Classes: " + ",".join(CLASS_NAMES)
+    onx.doc_string = f"EdgePort vessel classifier ({doc}). Classes: " + ",".join(CLASS_NAMES)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, float_path = tempfile.mkstemp(suffix=".onnx", dir=path.parent)
     os.close(fd)
@@ -369,7 +384,27 @@ def classify_detections(dets: list[Detection], classifier: "VesselClassifier | N
     return labels, conf
 
 
+def _model_input_width(path: Path) -> int | None:
+    try:
+        import onnxruntime as ort
+
+        sess = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+        return int(sess.get_inputs()[0].shape[-1])
+    except Exception:
+        return None
+
+
 @lru_cache(maxsize=1)
 def get_classifier() -> VesselClassifier:
-    """Process-wide cached classifier (Streamlit reruns reuse the same ONNX session)."""
-    return VesselClassifier()
+    """Process-wide cached classifier (Streamlit reruns reuse the same ONNX session).
+
+    Uses the committed OpenSARShip-trained model when present and compatible, otherwise the
+    simulator-only model (generated on first boot).
+    """
+    if OPENSARSHIP_MODEL_PATH.exists():
+        if _model_input_width(OPENSARSHIP_MODEL_PATH) == N_FEATURES:
+            log.info("Using OpenSARShip-trained classifier %s", OPENSARSHIP_MODEL_PATH.name)
+            return VesselClassifier(OPENSARSHIP_MODEL_PATH)
+        log.warning("%s does not match the current feature set; falling back to the simulator "
+                    "model. Re-run python -m onboard_ai.train_opensarship.", OPENSARSHIP_MODEL_PATH.name)
+    return VesselClassifier(MODEL_PATH)
