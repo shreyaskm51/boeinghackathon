@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EdgePort orbital telemetry packet (< 3 KB)",
+  "description": "Written by onboard_ai/edge_pipeline.py (Person A), read by ground_station/ and app.py (Person B). Change only by mutual agreement.",
+  "type": "object",
+  "required": ["telemetry_header", "ports_summary", "vessels"],
+  "properties": {
+    "telemetry_header": {
+      "type": "object",
+      "required": ["satellite_id", "sensor_mode", "pass_timestamp_utc", "monitoring_limit_km",
+                   "raw_scene_size_mb", "cropped_roi_size_mb", "downlinked_json_size_kb",
+                   "bandwidth_saved_pct", "onboard_inference_time_ms", "sea_state"],
+      "properties": {
+        "satellite_id": {"type": "string"},
+        "sensor_mode": {"enum": ["C-BAND_SAR_ALL_WEATHER", "X-BAND_SAR_HIGH_RES"]},
+        "pass_timestamp_utc": {"type": "string", "format": "date-time"},
+        "monitoring_limit_km": {"type": "number", "const": 370},
+        "raw_scene_size_mb": {"type": "number"},
+        "cropped_roi_size_mb": {"type": "number"},
+        "downlinked_json_size_kb": {"type": "number", "exclusiveMaximum": 3},
+        "bandwidth_saved_pct": {"type": "number", "minimum": 99},
+        "onboard_inference_time_ms": {"type": "number"},
+        "sea_state": {"enum": ["CALM", "MODERATE", "MONSOON_ROUGH"]}
+      }
+    },
+    "ports_summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["port_id", "port_name", "state", "max_berths", "counts", "utilization_index",
+                     "congestion_status", "estimated_cargo_tonnage_mt",
+                     "estimated_trade_value_inr_cr", "dark_vessels_detected"],
+        "properties": {
+          "port_id": {"enum": ["IN-KRW", "IN-BEY", "IN-KAK", "IN-GOP"]},
+          "port_name": {"type": "string"},
+          "state": {"type": "string"},
+          "max_berths": {"type": "integer"},
+          "counts": {
+            "type": "object",
+            "required": ["berth_occupied", "anchorage_waiting", "coastal_fishing_boats",
+                         "approaching_ferries", "offshore_eez_vessels"],
+            "additionalProperties": {"type": "integer", "minimum": 0}
+          },
+          "utilization_index": {"type": "number", "minimum": 0, "maximum": 1},
+          "congestion_status": {"enum": ["NORMAL", "MODERATE", "HIGH_CONGESTION", "CRITICAL_CONGESTION"]},
+          "estimated_cargo_tonnage_mt": {"type": "number"},
+          "estimated_trade_value_inr_cr": {"type": "number"},
+          "dark_vessels_detected": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "vessels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["vessel_id", "port_id", "vessel_type", "latitude", "longitude",
+                     "distance_from_shore_km", "zone", "estimated_length_m", "confidence",
+                     "ais_matched", "eta_minutes"],
+        "properties": {
+          "vessel_id": {"type": "string"},
+          "port_id": {"enum": ["IN-KRW", "IN-BEY", "IN-KAK", "IN-GOP"]},
+          "vessel_type": {"enum": ["FISHING_BOAT", "FERRY", "CARGO_VESSEL"]},
+          "latitude": {"type": "number"},
+          "longitude": {"type": "number"},
+          "distance_from_shore_km": {"type": "number", "minimum": 0, "maximum": 370},
+          "zone": {"enum": ["BERTH", "ANCHORAGE_QUEUE", "COASTAL_APPROACH", "OFFSHORE_EEZ"]},
+          "estimated_length_m": {"type": "number"},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "ais_matched": {"type": "boolean"},
+          "eta_minutes": {"type": ["integer", "null"]}
+        }
+      }
+    }
+  }
+}

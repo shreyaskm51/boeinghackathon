@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.pytest_cache/
+.streamlit/secrets.toml
+
+# Generated at runtime
+outputs/*
+!outputs/.gitkeep
+onboard_ai/models/*.onnx
+data/sample_passes/*.npy
+data/sample_passes/*.tif
+
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

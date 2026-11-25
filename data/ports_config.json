@@ -1,0 +1,59 @@
+{
+  "_note": "Shared file. bbox format = [min_lon, min_lat, max_lon, max_lat] in WGS84. Berth/anchorage boxes are approximate hackathon values; eez_corridor_bbox spans roughly 0-370 km seaward.",
+  "monitoring_limit_km": 370,
+  "coastal_zone_km": 50,
+  "ports": [
+    {
+      "port_id": "IN-KRW",
+      "port_name": "Karwar Regional Port",
+      "state": "Karnataka",
+      "coast": "WEST",
+      "lat": 14.8020,
+      "lon": 74.1180,
+      "max_berths": 6,
+      "operational_profile": "West coast feeder & fishing hub",
+      "berth_bbox": [74.100, 14.790, 74.125, 14.812],
+      "anchorage_bbox": [74.030, 14.760, 74.090, 14.815],
+      "eez_corridor_bbox": [70.650, 13.100, 74.100, 16.500]
+    },
+    {
+      "port_id": "IN-BEY",
+      "port_name": "Beypore Port",
+      "state": "Kerala",
+      "coast": "WEST",
+      "lat": 11.1640,
+      "lon": 75.8030,
+      "max_berths": 5,
+      "operational_profile": "Coastal cargo, Lakshadweep ferry & fishing",
+      "berth_bbox": [75.792, 11.155, 75.810, 11.172],
+      "anchorage_bbox": [75.730, 11.135, 75.785, 11.185],
+      "eez_corridor_bbox": [72.400, 9.500, 75.790, 12.830]
+    },
+    {
+      "port_id": "IN-KAK",
+      "port_name": "Kakinada Anchorage",
+      "state": "Andhra Pradesh",
+      "coast": "EAST",
+      "lat": 16.9580,
+      "lon": 82.2650,
+      "max_berths": 10,
+      "operational_profile": "East coast agri-export & coastal shipping",
+      "berth_bbox": [82.240, 16.940, 82.275, 16.975],
+      "anchorage_bbox": [82.290, 16.930, 82.370, 17.010],
+      "eez_corridor_bbox": [82.280, 15.300, 85.750, 18.620]
+    },
+    {
+      "port_id": "IN-GOP",
+      "port_name": "Gopalpur Port",
+      "state": "Odisha",
+      "coast": "EAST",
+      "lat": 19.3030,
+      "lon": 84.9620,
+      "max_berths": 6,
+      "operational_profile": "Regional bulk & coastal feeder port",
+      "berth_bbox": [84.952, 19.294, 84.972, 19.312],
+      "anchorage_bbox": [84.985, 19.270, 85.050, 19.325],
+      "eez_corridor_bbox": [84.975, 17.640, 88.500, 20.970]
+    }
+  ]
+}

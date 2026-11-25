@@ -1,0 +1,142 @@
+{
+  "telemetry_header": {
+    "satellite_id": "EOS-EDGEPORT-LEO-04",
+    "sensor_mode": "C-BAND_SAR_ALL_WEATHER",
+    "pass_timestamp_utc": "2026-11-25T12:30:00Z",
+    "monitoring_limit_km": 370,
+    "raw_scene_size_mb": 142.4,
+    "cropped_roi_size_mb": 4.2,
+    "downlinked_json_size_kb": 2.76,
+    "bandwidth_saved_pct": 99.99,
+    "onboard_inference_time_ms": 34.6,
+    "sea_state": "MODERATE"
+  },
+  "ports_summary": [
+    {
+      "port_id": "IN-KRW",
+      "port_name": "Karwar Regional Port",
+      "state": "Karnataka",
+      "max_berths": 6,
+      "counts": {
+        "berth_occupied": 5,
+        "anchorage_waiting": 4,
+        "coastal_fishing_boats": 18,
+        "approaching_ferries": 2,
+        "offshore_eez_vessels": 9
+      },
+      "utilization_index": 0.83,
+      "congestion_status": "HIGH_CONGESTION",
+      "estimated_cargo_tonnage_mt": 42500,
+      "estimated_trade_value_inr_cr": 18.4,
+      "dark_vessels_detected": 0
+    },
+    {
+      "port_id": "IN-BEY",
+      "port_name": "Beypore Port",
+      "state": "Kerala",
+      "max_berths": 5,
+      "counts": {
+        "berth_occupied": 2,
+        "anchorage_waiting": 1,
+        "coastal_fishing_boats": 24,
+        "approaching_ferries": 1,
+        "offshore_eez_vessels": 6
+      },
+      "utilization_index": 0.4,
+      "congestion_status": "NORMAL",
+      "estimated_cargo_tonnage_mt": 9800,
+      "estimated_trade_value_inr_cr": 4.1,
+      "dark_vessels_detected": 0
+    },
+    {
+      "port_id": "IN-KAK",
+      "port_name": "Kakinada Anchorage",
+      "state": "Andhra Pradesh",
+      "max_berths": 10,
+      "counts": {
+        "berth_occupied": 10,
+        "anchorage_waiting": 7,
+        "coastal_fishing_boats": 12,
+        "approaching_ferries": 0,
+        "offshore_eez_vessels": 11
+      },
+      "utilization_index": 1.0,
+      "congestion_status": "CRITICAL_CONGESTION",
+      "estimated_cargo_tonnage_mt": 118000,
+      "estimated_trade_value_inr_cr": 52.7,
+      "dark_vessels_detected": 0
+    },
+    {
+      "port_id": "IN-GOP",
+      "port_name": "Gopalpur Port",
+      "state": "Odisha",
+      "max_berths": 6,
+      "counts": {
+        "berth_occupied": 3,
+        "anchorage_waiting": 2,
+        "coastal_fishing_boats": 9,
+        "approaching_ferries": 0,
+        "offshore_eez_vessels": 4
+      },
+      "utilization_index": 0.5,
+      "congestion_status": "MODERATE",
+      "estimated_cargo_tonnage_mt": 26500,
+      "estimated_trade_value_inr_cr": 11.2,
+      "dark_vessels_detected": 0
+    }
+  ],
+  "vessels": [
+    {
+      "vessel_id": "VSL-KRW-001",
+      "port_id": "IN-KRW",
+      "vessel_type": "FERRY",
+      "latitude": 14.7912,
+      "longitude": 74.0845,
+      "distance_from_shore_km": 3.8,
+      "zone": "COASTAL_APPROACH",
+      "estimated_length_m": 34.0,
+      "confidence": 0.94,
+      "ais_matched": false,
+      "eta_minutes": 28
+    },
+    {
+      "vessel_id": "VSL-BEY-001",
+      "port_id": "IN-BEY",
+      "vessel_type": "FERRY",
+      "latitude": 11.158,
+      "longitude": 75.772,
+      "distance_from_shore_km": 3.4,
+      "zone": "COASTAL_APPROACH",
+      "estimated_length_m": 41.0,
+      "confidence": 0.9,
+      "ais_matched": false,
+      "eta_minutes": 22
+    },
+    {
+      "vessel_id": "VSL-KAK-001",
+      "port_id": "IN-KAK",
+      "vessel_type": "CARGO_VESSEL",
+      "latitude": 16.972,
+      "longitude": 82.325,
+      "distance_from_shore_km": 7.1,
+      "zone": "ANCHORAGE_QUEUE",
+      "estimated_length_m": 168.0,
+      "confidence": 0.96,
+      "ais_matched": false,
+      "eta_minutes": 140
+    },
+    {
+      "vessel_id": "VSL-GOP-001",
+      "port_id": "IN-GOP",
+      "vessel_type": "CARGO_VESSEL",
+      "latitude": 19.295,
+      "longitude": 85.01,
+      "distance_from_shore_km": 5.3,
+      "zone": "ANCHORAGE_QUEUE",
+      "estimated_length_m": 96.0,
+      "confidence": 0.93,
+      "ais_matched": false,
+      "eta_minutes": 75
+    }
+  ]
+}
