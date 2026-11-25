@@ -1,7 +1,7 @@
 # `onboard_ai/` — Orbital Edge Engine (Track B)
 
 ```bash
-python -m onboard_ai.edge_pipeline                       # full sweep, all 4 ports -> outputs/latest_telemetry.json
+python -m onboard_ai.edge_pipeline                       # full sweep, all 16 ports -> outputs/latest_telemetry.json
 python -m onboard_ai.edge_pipeline --port IN-KAK --sea-state MONSOON_ROUGH --pass-time 06:00
 python -m onboard_ai.edge_pipeline --port IN-KRW --upload my_scene.png
 python -m onboard_ai.edge_pipeline --sensor-mode X-BAND              # adds 3 m X-band spotlights
@@ -40,10 +40,10 @@ unaffected. No caching needed on the dashboard side: the ONNX session is cached 
 | A | `sar_simulator.py` | 2048² uint16 C-band coastal ROI (10 m, ~8.4 MB) + 3 offshore EEZ chips, and optionally a 3072² X-band spotlight (3 m) imaging the same vessels; Gamma speckle + wave texture per sea state; land with cranes/breakwater; vessels by port profile x pass time. Upload loader for `.tif` (rasterio optional) / `.png` / `.npy`. |
 | B | `cfar_onnx_detector.py` | Cached land mask -> vectorized CA-CFAR (310 m guard / 710 m training windows, background estimated on a ~40 m grid, Pfa 1e-6, looks estimated from the scene) -> `ndimage.label` -> 9 blob features -> int8-quantized ONNX MLP trained at 10 m and 3 m (fishing / ferry / cargo / clutter) -> physical size gate. |
 | C | `georeferencer.py` | Pixel -> WGS84, length, tonnage, cross-shore distance, zone (BERTH / ANCHORAGE_QUEUE / COASTAL_APPROACH / OFFSHORE_EEZ), ETA. |
-| D | `edge_pipeline.py` | Port summaries, priority-ordered vessel list trimmed to the 3 KB budget, raster purge, alert chips, previews. |
+| D | `edge_pipeline.py` | Port summaries, priority-ordered vessel list (all vessels fit the 200 KB budget; lowest priority trimmed first if ever exceeded), raster purge, alert chips, previews. |
 
 ## Measured on the simulator
-C-band, 12 port passes per sea state (4 ports x 3 seeds):
+C-band, 12 port passes per sea state (original 4 ports x 3 seeds):
 
 | Sea state | Cargo | Ferry | Fishing | False alarms / pass |
 |---|---|---|---|---|
@@ -59,19 +59,27 @@ X-band vs C-band on the same vessels inside the spotlight (12 passes per sea sta
 | Moderate | **3/11 -> 9/11** | 8/9 -> 9/9 |
 | Monsoon rough | 0/5 -> 0/5 | **6/9 -> 9/9** |
 
-Whole-port effect, moderate sea, all 4 ports: coastal fishing boats counted rises from 33 to 45
+Whole-port effect, moderate sea, original 4 ports: coastal fishing boats counted rises from 33 to 45
 (of 62 true). 10–15 m boats are 1–2 pixel targets at 10 m C-band resolution and drop out in
 rough seas (PRD: C-band is reliable for vessels >= 25–30 m). X-band resolves them in moderate
 seas, but in a monsoon sea neither band can separate them from wave clutter.
 
 **Speed** (laptop CPU, detection + classification): C-band ~90 ms per port
 (75 ms coastal ROI + 15 ms for three offshore chips); X-band mode ~205 ms per port.
-A 4-port C-band sweep reports ~360 ms of onboard inference.
+
+**Full 16-port sweep** (moderate sea, 18:00 IST):
+
+| Mode | Raw SAR | Packet | Vessels | Onboard inference | Wall time incl. scene simulation |
+|---|---|---|---|---|---|
+| C-band | 2,278 MB | 87 KB (99.99 % saved) | 334, all in packet | 1.4 s | ~7 s |
+| X-band | 2,580 MB | 97 KB (99.99 % saved) | 374, all in packet | 3.2 s | ~20 s |
+
+Most of the wall time is *generating* the synthetic scenes, which a real satellite would not
+do. For a snappy dashboard button, run a single port (~0.5 s C-band, ~1.3 s X-band).
 
 ## Known limits
-- Only ~4 vessels fit in the 3 KB packet next to the 4 port summaries; full totals are in
-  `ports_summary[].counts`. The list is prioritised: dark-vessel candidates, anchorage queue,
-  approaching ferries, berths, then the rest.
+- 16 ports (contract v2). Ports beyond the original four use approximate harbour coordinates
+  and simulator traffic profiles chosen from each port's character (fishing hub, bulk port...).
 - `ais_matched` is always `false` and `dark_vessels_detected` always `0` — the ground station
   owns AIS matching.
 - Uploaded images without GeoTIFF georeferencing are assumed to be 10 m GSD centred on the

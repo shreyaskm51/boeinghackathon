@@ -1,17 +1,17 @@
 """Main orbital orchestrator (PRD Step D).
 
 ROI crop -> land mask + CA-CFAR -> ONNX classification -> georeferencing & zone tagging ->
-per-port summary -> **raw raster purged from memory** -> < 3 KB JSON telemetry packet
+per-port summary -> **raw raster purged from memory** -> < 200 KB JSON telemetry packet
 (``outputs/latest_telemetry.json``, format = ``contracts/telemetry_schema.json``).
 
 64x64 PNG image chips are generated only for alert-worthy vessels: anchorage queues of ports
 in ``CRITICAL_CONGESTION`` and ship-sized ``DARK_VESSEL_OFFSHORE`` candidates in the EEZ
 corridor. Chips are returned to the caller and written to ``outputs/chips/``; they are not part
-of the 3 KB packet.
+of the telemetry packet.
 
 Run once from the repo root to create the first packet::
 
-    python -m onboard_ai.edge_pipeline            # full constellation sweep, all 4 ports
+    python -m onboard_ai.edge_pipeline            # full constellation sweep, all 16 ports
     python -m onboard_ai.edge_pipeline --port IN-KAK --sea-state MONSOON_ROUGH --pass-time 06:00
 """
 from __future__ import annotations
@@ -61,10 +61,10 @@ CHIP_DIR = ROOT / "outputs" / "chips"
 SATELLITE_ID = "EOS-EDGEPORT-LEO-04"
 SENSOR_MODE_LABEL = {"C-BAND": "C-BAND_SAR_ALL_WEATHER", "X-BAND": "X-BAND_SAR_HIGH_RES"}
 MONITORING_LIMIT_KM = 370
-PACKET_LIMIT_BYTES = 3 * 1024          # hard downlink budget (< 3 KB)
-PACKET_BUDGET_BYTES = PACKET_LIMIT_BYTES - 32  # headroom for the self-referencing size fields
+PACKET_LIMIT_BYTES = 200 * 1024        # hard downlink budget (< 200 KB, contract v2)
+PACKET_BUDGET_BYTES = PACKET_LIMIT_BYTES - 64  # headroom for the self-referencing size fields
 CHIP_SIZE = 64
-MAX_CHIPS = 8
+MAX_CHIPS = 16
 PREVIEW_SIDE = 512
 TRADE_VALUE_INR_PER_TONNE = 4300.0     # blended coastal cargo value (iron ore, rice, coal, containers)
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -130,7 +130,7 @@ def summarize_port(port: dict, vessels: list[VesselRecord]) -> dict:
 
 
 def _priority(v: VesselRecord) -> tuple:
-    """Lower = more important to downlink when the 3 KB budget forces a cut."""
+    """Lower = more important to downlink if the packet budget ever forces a cut."""
     if v.dark_candidate:
         rank = 0
     elif v.zone == "ANCHORAGE_QUEUE" and v.vessel_type != "FISHING_BOAT":
@@ -261,7 +261,7 @@ def run_pass(
     """Run one onboard orbital pass and write the telemetry packet.
 
     Args:
-        port_id: ``"IN-KRW"`` / ``"IN-BEY"`` / ``"IN-KAK"`` / ``"IN-GOP"``; ``None`` = full
+        port_id: any ``port_id`` in ``data/ports_config.json`` (e.g. ``"IN-KRW"``); ``None`` = full
             constellation sweep over all ports (an upload with ``None`` is placed at IN-KRW).
         sea_state: ``"CALM"`` | ``"MODERATE"`` | ``"MONSOON_ROUGH"`` (UI labels like
             ``"Clear Calm"`` or ``"Monsoon Rough Sea"`` are accepted).
@@ -420,7 +420,7 @@ def run_pass(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="EdgePort onboard orbital pass (Track B)")
-    parser.add_argument("--port", default=None, help="IN-KRW | IN-BEY | IN-KAK | IN-GOP (default: all)")
+    parser.add_argument("--port", default=None, help="a port_id from data/ports_config.json, e.g. IN-KRW (default: all)")
     parser.add_argument("--sea-state", default="MODERATE", help="CALM | MODERATE | MONSOON_ROUGH")
     parser.add_argument("--pass-time", default="18:00", help="06:00 | 12:00 | 18:00 | 23:30 (IST)")
     parser.add_argument("--upload", default=None, help="path to a .tif/.png/.npy SAR scene")

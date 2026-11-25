@@ -9,7 +9,7 @@ Coastline model
 For each port the shoreline is approximated as the meridian through the landward edge of its
 ``berth_bbox`` (east edge on the WEST coast, west edge on the EAST coast). Distance from shore
 is the seaward east-west distance from that meridian. This matches the simulator's scene
-geometry exactly and is accurate to a few km for real scenes near the four configured ports.
+geometry exactly and is accurate to a few km for real scenes near the configured ports.
 """
 from __future__ import annotations
 

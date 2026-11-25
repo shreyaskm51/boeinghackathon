@@ -17,12 +17,13 @@ from onboard_ai.cfar_onnx_detector import (
     get_classifier,
 )
 from onboard_ai.edge_pipeline import PACKET_LIMIT_BYTES, run_pass
-from onboard_ai.georeferencer import GeoTransform, classify_zone, get_port, georeference
+from onboard_ai.georeferencer import GeoTransform, classify_zone, get_port, georeference, load_ports_config
 from onboard_ai.sar_simulator import simulate_pass, to_display_uint8
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = json.loads((ROOT / "contracts" / "telemetry_schema.json").read_text(encoding="utf-8"))
-PORT_IDS = ["IN-KRW", "IN-BEY", "IN-KAK", "IN-GOP"]
+PORT_IDS = [p["port_id"] for p in load_ports_config()["ports"]]
+ORIGINAL_PORTS = ["IN-KRW", "IN-BEY", "IN-KAK", "IN-GOP"]
 
 
 def _validate(packet: dict) -> None:
@@ -44,7 +45,11 @@ def test_full_sweep_packet_matches_contract(sweep):
     assert [p["port_id"] for p in result["telemetry"]["ports_summary"]] == PORT_IDS
 
 
-def test_packet_file_is_under_3kb_and_header_is_truthful(sweep):
+def test_ports_config_has_16_ports():
+    assert len(PORT_IDS) == 16 and len(set(PORT_IDS)) == 16
+
+
+def test_packet_file_is_within_budget_and_header_is_truthful(sweep):
     result, out = sweep
     raw = out.read_bytes()
     assert len(raw) < PACKET_LIMIT_BYTES
@@ -58,6 +63,8 @@ def test_vessel_records_are_consistent(sweep):
     result, _ = sweep
     packet = result["telemetry"]
     assert packet["vessels"], "budget should leave room for at least one vessel"
+    # with the 200 KB budget every detected vessel is downlinked
+    assert len(packet["vessels"]) == result["stats"]["vessels_detected"]
     ids = [v["vessel_id"] for v in packet["vessels"]]
     assert len(ids) == len(set(ids))
     for v in packet["vessels"]:
@@ -156,7 +163,7 @@ def _classified(tile):
 
 def test_xband_spotlight_finds_more_small_boats_than_cband():
     c_hits = x_hits = total = 0
-    for seed, pid in enumerate(PORT_IDS):
+    for seed, pid in enumerate(ORIGINAL_PORTS):
         p = simulate_pass(pid, "MODERATE", "06:00", seed=200 + seed, sensor_mode="X-BAND")
         ctile, xtile = p.tiles[0], p.tiles[-1]
         assert xtile.sensor == "X-BAND" and xtile.geo.pixel_m == 3.0

@@ -89,8 +89,33 @@ PORT_PROFILE = {
                    offshore=(6, 12), ferry_berth_share=0.05),
     "IN-GOP": dict(berth=(0.4, 0.75), anchorage=(1, 3), ferries=(0, 1), fishing=(6, 12),
                    offshore=(3, 7), ferry_berth_share=0.05),
+    # --- contract v2 ports
+    "IN-PBD": dict(berth=(0.5, 0.85), anchorage=(1, 3), ferries=(0, 1), fishing=(12, 22),
+                   offshore=(5, 10), ferry_berth_share=0.05),
+    "IN-VRL": dict(berth=(0.4, 0.8), anchorage=(0, 2), ferries=(0, 1), fishing=(20, 32),
+                   offshore=(8, 14), ferry_berth_share=0.0),   # India's biggest fishing harbour
+    "IN-DIG": dict(berth=(0.5, 0.9), anchorage=(2, 4), ferries=(0, 1), fishing=(6, 12),
+                   offshore=(3, 7), ferry_berth_share=0.05),
+    "IN-RTC": dict(berth=(0.4, 0.75), anchorage=(0, 2), ferries=(0, 2), fishing=(12, 22),
+                   offshore=(5, 9), ferry_berth_share=0.1),
+    "IN-MAL": dict(berth=(0.5, 0.9), anchorage=(0, 1), ferries=(0, 1), fishing=(18, 30),
+                   offshore=(8, 14), ferry_berth_share=0.0),
+    "IN-MRM": dict(berth=(0.4, 0.8), anchorage=(1, 2), ferries=(1, 2), fishing=(12, 22),
+                   offshore=(5, 9), ferry_berth_share=0.3),   # Lakshadweep supply vessels
+    "IN-QUI": dict(berth=(0.3, 0.7), anchorage=(0, 2), ferries=(0, 1), fishing=(12, 22),
+                   offshore=(5, 9), ferry_berth_share=0.05),
+    "IN-KRK": dict(berth=(0.6, 0.95), anchorage=(2, 5), ferries=(0, 0), fishing=(6, 12),
+                   offshore=(3, 7), ferry_berth_share=0.0),
+    "IN-CDL": dict(berth=(0.3, 0.7), anchorage=(0, 2), ferries=(0, 0), fishing=(10, 18),
+                   offshore=(4, 8), ferry_berth_share=0.0),
+    "IN-KPT": dict(berth=(0.75, 1.0), anchorage=(4, 8), ferries=(0, 0), fishing=(6, 12),
+                   offshore=(5, 10), ferry_berth_share=0.0),
+    "IN-MTP": dict(berth=(0.3, 0.6), anchorage=(0, 2), ferries=(0, 1), fishing=(12, 20),
+                   offshore=(4, 8), ferry_berth_share=0.0),
+    "IN-DHA": dict(berth=(0.6, 0.95), anchorage=(3, 6), ferries=(0, 0), fishing=(5, 10),
+                   offshore=(3, 7), ferry_berth_share=0.0),
 }
-DEFAULT_PROFILE = PORT_PROFILE["IN-GOP"]
+DEFAULT_PROFILE = PORT_PROFILE["IN-GOP"]   # any port added to the config later
 
 # Diurnal multipliers per LEO pass time.
 TIME_FACTOR = {
