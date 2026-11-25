@@ -73,7 +73,8 @@ export default function App() {
         body: JSON.stringify({ ...simParams, use_live_ais: useLiveAis }),
       });
       if (!res.ok) {
-        throw new Error(`Simulation failed (${res.status})`);
+        const detail = await res.json().catch(() => ({}));
+        throw new Error(detail.error ? `Simulation failed: ${detail.error}` : `Simulation failed (${res.status})`);
       }
       const json = await res.json();
       setData(json);
@@ -157,7 +158,7 @@ export default function App() {
         <div>
           <h1>🛰️ EdgePort — Onboard Satellite AI &amp; Regional Port Intelligence</h1>
           <p>
-            Track A (Ground Station &amp; React Operator Console) · 0–370 km Indian EEZ · &lt; 3 KB
+            Track A (Ground Station &amp; React Operator Console) · 0–370 km Indian EEZ · &lt; 200 KB
             Telemetry
           </p>
         </div>

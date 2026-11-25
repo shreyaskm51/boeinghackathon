@@ -15,6 +15,9 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_AIS_PATH = REPO_ROOT / "data" / "ais_ground_truth.json"
+# AIS reports for the vessels of the latest simulated orbital pass, written by
+# onboard_ai.edge_pipeline.run_pass (same record format; dark vessels are simply absent).
+SIMULATED_AIS_PATH = REPO_ROOT / "outputs" / "simulated_ais.json"
 DEFAULT_PORTS_PATH = REPO_ROOT / "data" / "ports_config.json"
 AISSTREAM_HOST = "stream.aisstream.io"
 AISSTREAM_PORT = 443
@@ -232,9 +235,22 @@ def fetch_ais_feed(
     timeout_s: float = 4.0,
     ais_path: str | Path | None = None,
     ports_path: str | Path | None = None,
+    include_simulated: bool = True,
 ) -> dict[str, Any]:
-    """Load local AIS records and optionally enrich with live AISStream.io data."""
+    """Load local AIS records and optionally enrich with live AISStream.io data.
+
+    With ``include_simulated`` (default), AIS reports for the latest simulated orbital pass
+    (``outputs/simulated_ais.json``) are added, so simulated vessels that broadcast AIS are
+    matched and only the deliberately silent ones are flagged as dark.
+    """
     local_records = load_local_ais(ais_path=ais_path)
+    if include_simulated and SIMULATED_AIS_PATH.exists():
+        try:
+            known = {rec["mmsi"] for rec in local_records}
+            local_records += [rec for rec in load_local_ais(ais_path=SIMULATED_AIS_PATH)
+                              if rec["mmsi"] not in known]
+        except (OSError, ValueError, KeyError):
+            pass  # unreadable simulator output -> fall back to the ground-truth file only
     api_key = os.environ.get("AISSTREAM_API_KEY", "").strip()
 
     if not use_live or not api_key:

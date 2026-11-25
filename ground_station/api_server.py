@@ -7,6 +7,7 @@ import copy
 import io
 import json
 import mimetypes
+import threading
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -134,6 +135,8 @@ class EdgePortState:
         packet, source_path = load_telemetry_packet()
         self.active_packet: dict[str, Any] = packet
         self.packet_source_label: str = source_path.name
+        # one orbital pass at a time: passes are CPU-heavy and write shared output files
+        self.simulation_lock = threading.Lock()
 
     def reload_from_disk(self) -> None:
         packet, source_path = load_telemetry_packet()
@@ -179,6 +182,20 @@ class EdgePortState:
         pass_time_ist: str = "18:00",
         uploaded_image_b64: str | None = None,
         use_live_ais: bool = False,
+        sensor_mode: str = "C-BAND",
+    ) -> dict[str, Any]:
+        with self.simulation_lock:
+            return self._run_simulation(port_id, sea_state, pass_time_ist, uploaded_image_b64,
+                                        use_live_ais, sensor_mode)
+
+    def _run_simulation(
+        self,
+        port_id: str | None,
+        sea_state: str,
+        pass_time_ist: str,
+        uploaded_image_b64: str | None,
+        use_live_ais: bool,
+        sensor_mode: str,
     ) -> dict[str, Any]:
         uploaded_bytes: bytes | None = None
         if uploaded_image_b64:
@@ -193,6 +210,7 @@ class EdgePortState:
                 pass_time_ist=pass_time_ist,
                 uploaded_image=uploaded_bytes,
                 output_path=str(DEFAULT_LATEST_TELEMETRY_PATH),
+                sensor_mode=sensor_mode,
             )
             self.active_packet = sim_result["telemetry"]
             self.packet_source_label = "onboard_ai.edge_pipeline.run_pass"
@@ -234,7 +252,13 @@ class EdgePortState:
             "alert_chip_urls": [
                 _bytes_to_png_data_url(chip) for chip in (sim_result.get("alert_chips") or [])
             ],
+            "sensor_mode": sensor_mode if not fallback_mode else "C-BAND",
+            "stats": {k: v for k, v in (sim_result.get("stats") or {}).items()
+                      if k not in ("output_path", "alert_chip_paths")},
         }
+        for key in ("xband_raw_preview", "xband_overlay_preview"):
+            if sim_result.get(key) is not None:
+                payload["simulation"][f"{key}_url"] = _array_to_png_data_url(sim_result[key])
         return payload
 
 
@@ -336,9 +360,13 @@ def make_handler(state: EdgePortState) -> type[BaseHTTPRequestHandler]:
                         pass_time_ist=str(body.get("pass_time_ist", "18:00")),
                         uploaded_image_b64=body.get("uploaded_image_b64"),
                         use_live_ais=bool(body.get("use_live_ais", False)),
+                        sensor_mode=str(body.get("sensor_mode", "C-BAND")),
                     )
-                except KeyError as exc:
-                    self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+                except (KeyError, ValueError) as exc:  # unknown port / sea state / time / mode, bad base64
+                    self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc).strip("'\"")})
+                    return
+                except OSError as exc:  # uploaded file is not a readable image
+                    self._send_json(HTTPStatus.BAD_REQUEST, {"error": f"Could not read the uploaded image: {exc}"})
                     return
                 self._send_json(HTTPStatus.OK, payload)
                 return

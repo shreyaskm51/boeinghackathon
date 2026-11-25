@@ -27,6 +27,31 @@ from ground_station.api_server import EdgePortState, make_handler
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = REPO_ROOT / "contracts" / "telemetry_schema.json"
 SAMPLE_PATH = REPO_ROOT / "contracts" / "sample_telemetry.json"
+FRONTEND_INDEX = REPO_ROOT / "frontend" / "dist" / "index.html"
+
+
+@pytest.fixture(autouse=True)
+def isolated_outputs(tmp_path, monkeypatch):
+    """Keep tests independent of (and from overwriting) the shared outputs/ files.
+
+    Simulated passes write the latest packet and the simulated AIS feed; point both at a
+    temp folder so every test starts from the sample packet.
+    """
+    import ground_station.ais_connector as ais_connector
+    import ground_station.analytics_engine as analytics_engine
+    import ground_station.api_server as api_server
+
+    latest = tmp_path / "latest_telemetry.json"
+    sim_ais = tmp_path / "simulated_ais.json"
+    monkeypatch.setattr(analytics_engine, "DEFAULT_LATEST_TELEMETRY_PATH", latest)
+    monkeypatch.setattr(api_server, "DEFAULT_LATEST_TELEMETRY_PATH", latest)
+    monkeypatch.setattr(ais_connector, "SIMULATED_AIS_PATH", sim_ais)
+    try:
+        import onboard_ai.edge_pipeline as edge_pipeline
+
+        monkeypatch.setattr(edge_pipeline, "SIMULATED_AIS_PATH", sim_ais)
+    except ImportError:
+        pass
 
 
 def test_local_ais_ground_truth_valid() -> None:
@@ -208,9 +233,10 @@ def test_api_server_endpoints_and_simulation_smoke() -> None:
     assert sim_payload["simulation"]["raw_preview_url"].startswith("data:image/png;base64,")
     assert sim_payload["simulation"]["overlay_preview_url"].startswith("data:image/png;base64,")
 
-    status, html_body = _dispatch_http(handler_cls, b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
-    assert status == 200
-    assert b"EdgePort" in html_body
+    if FRONTEND_INDEX.exists():  # the React app is only served after `npm run build`
+        status, html_body = _dispatch_http(handler_cls, b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        assert status == 200
+        assert b"EdgePort" in html_body
 
 
 def test_sixty_port_network_and_swath_generation() -> None:
@@ -245,3 +271,35 @@ def test_sixty_port_network_and_swath_generation() -> None:
     assert sim_single["packet"]["ports_summary"][0]["port_id"] == "IN-OKH"
 
 
+
+
+def _post_json(handler_cls: type, path: str, payload: dict) -> tuple[int, dict]:
+    body = json.dumps(payload).encode("utf-8")
+    req = (f"POST {path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\n"
+           f"Content-Length: {len(body)}\r\n\r\n").encode("ascii") + body
+    status, raw = _dispatch_http(handler_cls, req)
+    return status, json.loads(raw.decode("utf-8"))
+
+
+def test_simulate_rejects_bad_input_with_400() -> None:
+    handler_cls = make_handler(EdgePortState())
+    for bad in ({"port_id": "IN-KRW", "pass_time_ist": "09:15"}, {"port_id": "IN-XXX"},
+                {"port_id": "IN-KRW", "sensor_mode": "L-BAND"}):
+        status, payload = _post_json(handler_cls, "/api/simulate", bad)
+        assert status == 400, bad
+        assert payload["error"]
+
+
+def test_simulated_pass_flags_only_few_dark_vessels() -> None:
+    pytest.importorskip("onboard_ai.edge_pipeline")
+    payload = EdgePortState().run_simulation(port_id="IN-KRW", sea_state="MODERATE", pass_time_ist="18:00")
+    vessels = payload["packet"]["vessels"]
+    dark = sum(not v["ais_matched"] for v in vessels)
+    assert vessels and dark <= 0.4 * len(vessels)
+
+
+def test_xband_simulation_returns_spotlight_previews() -> None:
+    pytest.importorskip("onboard_ai.edge_pipeline")
+    payload = EdgePortState().run_simulation(port_id="IN-KAK", sensor_mode="X-BAND")
+    assert payload["simulation"]["sensor_mode"] == "X-BAND"
+    assert payload["simulation"]["xband_overlay_preview_url"].startswith("data:image/png;base64,")

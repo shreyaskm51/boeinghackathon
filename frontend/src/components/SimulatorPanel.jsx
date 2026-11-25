@@ -7,7 +7,9 @@ export default function SimulatorPanel({
   isSimulating,
   onRunSimulation,
 }) {
-  const [simPort, setSimPort] = useState("ALL");
+  // default to a single port: a full constellation sweep takes ~30 s
+  const [simPort, setSimPort] = useState("");
+  const [sensorMode, setSensorMode] = useState("C-BAND");
   const [seaState, setSeaState] = useState("MODERATE");
   const [passTimeIst, setPassTimeIst] = useState("18:00");
   const [uploadedImageB64, setUploadedImageB64] = useState(null);
@@ -30,8 +32,10 @@ export default function SimulatorPanel({
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    const target = simPort || ports[0]?.port_id || "ALL";
     onRunSimulation({
-      port_id: simPort === "ALL" ? null : simPort,
+      port_id: target === "ALL" ? null : target,
+      sensor_mode: sensorMode,
       sea_state: seaState,
       pass_time_ist: passTimeIst,
       uploaded_image_b64: uploadedImageB64,
@@ -42,7 +46,7 @@ export default function SimulatorPanel({
     <section className="panel" aria-labelledby="sim-panel-heading">
       <div className="panel-header">
         <h2 id="sim-panel-heading">
-          3. Onboard AI Live Simulator (Raw SAR → CFAR/ONNX → &lt; 3 KB Telemetry)
+          3. Onboard AI Live Simulator (Raw SAR → CFAR/ONNX → &lt; 200 KB Telemetry)
         </h2>
         {uploadedName ? <span className="muted">Uploaded SAR: {uploadedName}</span> : null}
       </div>
@@ -52,10 +56,10 @@ export default function SimulatorPanel({
           <label htmlFor="sim-port-select">Target Port / Swath</label>
           <select
             id="sim-port-select"
-            value={simPort}
+            value={simPort || ports[0]?.port_id || "ALL"}
             onChange={(e) => setSimPort(e.target.value)}
           >
-            <option value="ALL">All {ports.length} Ports (Constellation Sweep)</option>
+            <option value="ALL">All {ports.length} Ports (Constellation Sweep, ~30 s)</option>
             {ports.map((p) => (
               <option key={p.port_id} value={p.port_id}>
                 {p.port_name} [{p.port_id}] ({p.state})
@@ -92,11 +96,23 @@ export default function SimulatorPanel({
         </div>
 
         <div className="form-field">
-          <label htmlFor="sim-file-upload">Optional Sentinel-1 SAR (.tif / .png)</label>
+          <label htmlFor="sim-sensor-select">SAR Sensor Mode</label>
+          <select
+            id="sim-sensor-select"
+            value={sensorMode}
+            onChange={(e) => setSensorMode(e.target.value)}
+          >
+            <option value="C-BAND">C-band 10 m (all-weather)</option>
+            <option value="X-BAND">X-band 3 m spotlight (small boats)</option>
+          </select>
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="sim-file-upload">Optional Sentinel-1 SAR (.tif / .png / .npy)</label>
           <input
             id="sim-file-upload"
             type="file"
-            accept=".tif,.tiff,.png"
+            accept=".tif,.tiff,.png,.npy"
             onChange={handleFileChange}
           />
         </div>
@@ -110,7 +126,7 @@ export default function SimulatorPanel({
         <>
           {simulation.fallback_mode ? (
             <div className="banner-info">
-              Displaying ground-station preview generated from the &lt; 3 KB telemetry contract
+              Displaying ground-station preview generated from the &lt; 200 KB telemetry contract
               (Person A&apos;s <code>onboard_ai/edge_pipeline.py</code> will plug in automatically once merged).
             </div>
           ) : null}
@@ -134,8 +150,29 @@ export default function SimulatorPanel({
               />
             </div>
 
+            {simulation.xband_overlay_preview_url ? (
+              <>
+                <div className="sar-card">
+                  <h3>X-band 3 m Spotlight (Raw)</h3>
+                  <img
+                    className="sar-preview-img"
+                    src={simulation.xband_raw_preview_url}
+                    alt="X-band spotlight raw SAR preview"
+                  />
+                </div>
+                <div className="sar-card">
+                  <h3>X-band 3 m Spotlight (Detections)</h3>
+                  <img
+                    className="sar-preview-img"
+                    src={simulation.xband_overlay_preview_url}
+                    alt="X-band spotlight detection overlay"
+                  />
+                </div>
+              </>
+            ) : null}
+
             <div className="sar-card">
-              <h3>Downlinked Telemetry Packet (&lt; 3 KB)</h3>
+              <h3>Downlinked Telemetry Packet (&lt; 200 KB)</h3>
               <pre className="json-viewer">{JSON.stringify(activePacket, null, 2)}</pre>
             </div>
           </div>
@@ -161,7 +198,7 @@ export default function SimulatorPanel({
       ) : (
         <details>
           <summary style={{ cursor: "pointer", fontSize: "0.86rem", color: "#94a3b8" }}>
-            Inspect Active Downlinked JSON Telemetry Packet (&lt; 3 KB)
+            Inspect Active Downlinked JSON Telemetry Packet (&lt; 200 KB)
           </summary>
           <pre className="json-viewer" style={{ marginBlockStart: "0.6rem" }}>
             {JSON.stringify(activePacket, null, 2)}
