@@ -2,23 +2,27 @@
 
 from __future__ import annotations
 
+import io
 import json
 from pathlib import Path
 
 import jsonschema
 import pytest
 
-from app import _run_simulation_action, build_folium_map, build_offline_plotly_map
 from ground_station.ais_connector import fetch_ais_feed, load_local_ais
 from ground_station.alert_formatter import MAX_SMS_LENGTH, format_all_alerts, format_port_alert
 from ground_station.analytics_engine import (
     analyze_telemetry,
+    build_swath_telemetry_for_port,
     classify_congestion,
     compute_port_utilization,
     estimate_trade_value_inr_cr,
     haversine_km,
+    load_ports_config,
     load_telemetry_packet,
+    summarize_national_port_network,
 )
+from ground_station.api_server import EdgePortState, make_handler
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = REPO_ROOT / "contracts" / "telemetry_schema.json"
@@ -144,19 +148,100 @@ def test_sms_alerts_always_under_160_chars() -> None:
     assert extreme_alert.startswith("EDGEPORT ALERT [IN-KRW-EXTREME-LONG-CODE]: ")
 
 
-def test_dashboard_map_and_simulator_fallback_smoke() -> None:
-    sim_out = _run_simulation_action(
-        port_id=None,
-        sea_state="MONSOON_ROUGH",
-        pass_time_ist="18:00",
-        uploaded_bytes=None,
-    )
-    assert "telemetry" in sim_out
-    assert sim_out["raw_preview"].shape == (384, 384)
-    assert sim_out["overlay_preview"].shape == (384, 384, 3)
+class _FakeSocket:
+    """In-memory socket stand-in for testing BaseHTTPRequestHandler without TCP sockets."""
 
-    analyzed = analyze_telemetry(packet=sim_out["telemetry"])
-    fmap = build_folium_map(analyzed, selected_port_id="ALL")
-    assert fmap is not None
-    fig = build_offline_plotly_map(analyzed, selected_port_id="ALL")
-    assert len(fig.data) > 0
+    def __init__(self, raw_request: bytes) -> None:
+        self._rfile = io.BytesIO(raw_request)
+        self._wfile = io.BytesIO()
+
+    def makefile(self, mode: str, *args: object, **kwargs: object) -> io.BytesIO:
+        return self._rfile if "r" in mode else self._wfile
+
+    def sendall(self, data: bytes) -> None:
+        self._wfile.write(data)
+
+    def close(self) -> None:
+        return None
+
+
+def _dispatch_http(handler_cls: type, raw_request: bytes) -> tuple[int, bytes]:
+    fake_sock = _FakeSocket(raw_request)
+    handler_cls(fake_sock, ("127.0.0.1", 0), None)
+    raw_resp = fake_sock._wfile.getvalue()
+    head, _, body = raw_resp.partition(b"\r\n\r\n")
+    status_line = head.splitlines()[0].decode("ascii")
+    status_code = int(status_line.split()[1])
+    return status_code, body
+
+
+def test_api_server_endpoints_and_simulation_smoke() -> None:
+    state = EdgePortState()
+    handler_cls = make_handler(state)
+
+    status, body = _dispatch_http(handler_cls, b"GET /api/health HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    assert status == 200
+    health = json.loads(body.decode("utf-8"))
+    assert health["status"] == "ok"
+
+    status, body = _dispatch_http(handler_cls, b"GET /api/dashboard HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    assert status == 200
+    dash = json.loads(body.decode("utf-8"))
+    assert dash["kpis"]["total_network_ports"] == 60
+    assert len(dash["national_network"]) == 60
+    assert len(dash["alerts_by_port"]) == 4
+
+    sim_body = json.dumps(
+        {"port_id": "IN-OKH", "sea_state": "MONSOON_ROUGH", "pass_time_ist": "18:00"}
+    ).encode("utf-8")
+    sim_req = (
+        b"POST /api/simulate HTTP/1.1\r\n"
+        b"Host: localhost\r\n"
+        b"Content-Type: application/json\r\n"
+        + f"Content-Length: {len(sim_body)}\r\n\r\n".encode("ascii")
+        + sim_body
+    )
+    status, body = _dispatch_http(handler_cls, sim_req)
+    assert status == 200
+    sim_payload = json.loads(body.decode("utf-8"))
+    assert sim_payload["packet"]["ports_summary"][0]["port_id"] == "IN-OKH"
+    assert sim_payload["simulation"]["raw_preview_url"].startswith("data:image/png;base64,")
+    assert sim_payload["simulation"]["overlay_preview_url"].startswith("data:image/png;base64,")
+
+    status, html_body = _dispatch_http(handler_cls, b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    assert status == 200
+    assert b"EdgePort" in html_body
+
+
+def test_sixty_port_network_and_swath_generation() -> None:
+    cfg = load_ports_config()
+    ports = cfg["ports"]
+    assert 50 <= len(ports) <= 100
+    port_ids = [p["port_id"] for p in ports]
+    assert len(set(port_ids)) == len(ports)
+    assert {"IN-KRW", "IN-BEY", "IN-KAK", "IN-GOP", "IN-OKH", "IN-PBL", "IN-DHM"} <= set(port_ids)
+
+    with SCHEMA_PATH.open("r", encoding="utf-8") as fh:
+        schema = json.load(fh)
+
+    for target_pid in ("IN-OKH", "IN-PBL", "IN-DHM"):
+        swath_packet = build_swath_telemetry_for_port(target_pid, ports_config=cfg)
+        minified_bytes = len(json.dumps(swath_packet, separators=(",", ":")).encode("utf-8"))
+        assert minified_bytes < 3 * 1024
+        assert swath_packet["telemetry_header"]["downlinked_json_size_kb"] < 3.0
+        jsonschema.validate(instance=swath_packet, schema=schema)
+
+        analyzed = analyze_telemetry(packet=swath_packet, ports_config=cfg)
+        alerts = format_all_alerts(analyzed)
+        assert target_pid in alerts
+        assert all(len(msg) <= MAX_SMS_LENGTH for msg in alerts.values())
+
+        network = summarize_national_port_network(analyzed)
+        assert len(network) == len(ports)
+        assert sum(1 for row in network if row["in_active_swath"]) == len(swath_packet["ports_summary"])
+
+    state = EdgePortState()
+    sim_single = state.run_simulation(port_id="IN-OKH", sea_state="CALM", pass_time_ist="06:00")
+    assert sim_single["packet"]["ports_summary"][0]["port_id"] == "IN-OKH"
+
+

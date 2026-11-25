@@ -213,6 +213,46 @@ def compute_rerouting_suggestions(
             candidates.append((same_coast_rank, cand_util, dist_km, cand_summary))
 
         if not candidates:
+            # Fall back to nearest port in the broader 60-port network not marked congested in swath
+            network_candidates: list[tuple[int, float, dict[str, Any]]] = []
+            for cand_id, cand_meta in port_meta.items():
+                if cand_id == src_id:
+                    continue
+                known_summary = summary_by_id.get(cand_id)
+                if known_summary and float(known_summary.get("utilization_index", 0.0)) > utilization_threshold:
+                    continue
+                same_coast_rank = 0 if cand_meta.get("coast") == src_coast else 1
+                dist_km = haversine_km(
+                    src_lat,
+                    src_lon,
+                    float(cand_meta.get("lat", src_lat)),
+                    float(cand_meta.get("lon", src_lon)),
+                )
+                network_candidates.append((same_coast_rank, dist_km, cand_meta))
+
+            if network_candidates:
+                network_candidates.sort(key=lambda item: (item[0], item[1]))
+                _, dist_km, best_meta = network_candidates[0]
+                waiting = int(port.get("counts", {}).get("anchorage_waiting", 0))
+                suggestions.append(
+                    {
+                        "port_id": src_id,
+                        "port_name": port["port_name"],
+                        "utilization_pct": round(util * 100),
+                        "anchorage_waiting": waiting,
+                        "recommended_port_id": best_meta["port_id"],
+                        "recommended_port_name": best_meta["port_name"],
+                        "recommended_utilization_pct": None,
+                        "distance_km": round(dist_km, 1),
+                        "message": (
+                            f"Reroute {waiting} queued vessels from {port['port_name']} ({util * 100:.0f}% full) "
+                            f"to regional alternate {best_meta['port_name']} [{best_meta['port_id']}] "
+                            f"(~{dist_km:.0f} km)."
+                        ),
+                    }
+                )
+                continue
+
             suggestions.append(
                 {
                     "port_id": src_id,
@@ -369,6 +409,7 @@ def analyze_telemetry(
         "total_dark_vessels": total_dark_vessels,
         "congested_ports_count": congested_ports_count,
         "total_ports": len(working_packet.get("ports_summary", [])),
+        "total_network_ports": len(cfg.get("ports", [])),
         "total_trade_value_inr_cr": round(total_trade_cr, 2),
         "total_cargo_tonnage_mt": round(total_tonnage_mt, 1),
     }
@@ -408,3 +449,139 @@ def build_multi_pass_nowcast(analyzed_result: dict[str, Any]) -> list[dict[str, 
                 }
             )
     return rows
+
+
+def build_swath_telemetry_for_port(
+    port_id: str,
+    ports_config: dict[str, Any] | None = None,
+    sea_state: str = "MODERATE",
+    pass_timestamp_utc: str = "2026-11-25T18:00:00Z",
+) -> dict[str, Any]:
+    """Synthesize a schema-valid < 3 KB swath telemetry packet for any port in ports_config."""
+    cfg = ports_config or load_ports_config()
+    all_ports = cfg.get("ports", [])
+    by_id = {p["port_id"]: p for p in all_ports}
+    if port_id not in by_id:
+        raise KeyError(f"Unknown port_id: {port_id}")
+
+    target = by_id[port_id]
+    neighbors = sorted(
+        [p for p in all_ports if p["port_id"] != port_id],
+        key=lambda p: (
+            0 if p.get("coast") == target.get("coast") else 1,
+            haversine_km(target["lat"], target["lon"], p["lat"], p["lon"]),
+        ),
+    )
+    swath_ports = [target] + neighbors[:3]
+
+    ports_summary: list[dict[str, Any]] = []
+    vessels: list[dict[str, Any]] = []
+
+    for idx, port in enumerate(swath_ports):
+        pid = port["port_id"]
+        max_b = int(port.get("max_berths", 6))
+        seed_val = sum(ord(ch) for ch in pid) + idx * 7
+        occ_ratio = [0.85, 0.45, 0.95, 0.55][idx % 4]
+        berth_occ = max(1, min(max_b, int(round(max_b * occ_ratio))))
+        util = compute_port_utilization(berth_occ, max_b)
+        anch_wait = max(0, (seed_val % 5) + (2 if util > 0.80 else 0))
+        fishing_cnt = 8 + (seed_val % 19)
+        ferry_cnt = 1 if (seed_val % 2 == 0) else 0
+        offshore_cnt = 4 + (seed_val % 9)
+        tonnage = round(berth_occ * 6800.0 + anch_wait * 3400.0, 1)
+
+        ports_summary.append(
+            {
+                "port_id": pid,
+                "port_name": port["port_name"],
+                "state": port["state"],
+                "max_berths": max_b,
+                "counts": {
+                    "berth_occupied": berth_occ,
+                    "anchorage_waiting": anch_wait,
+                    "coastal_fishing_boats": fishing_cnt,
+                    "approaching_ferries": ferry_cnt,
+                    "offshore_eez_vessels": offshore_cnt,
+                },
+                "utilization_index": util,
+                "congestion_status": classify_congestion(util),
+                "estimated_cargo_tonnage_mt": tonnage,
+                "estimated_trade_value_inr_cr": estimate_trade_value_inr_cr(tonnage),
+                "dark_vessels_detected": 0,
+            }
+        )
+
+        # Keep <= 4 priority vessels total to stay strictly < 3 KB
+        anch = port["anchorage_bbox"]
+        v_lat = round((anch[1] + anch[3]) / 2.0, 4)
+        v_lon = round((anch[0] + anch[2]) / 2.0, 4)
+        v_type = "FERRY" if (idx % 2 == 1 and ferry_cnt > 0) else "CARGO_VESSEL"
+        vessels.append(
+            {
+                "vessel_id": f"VSL-{pid.split('-')[1]}-001",
+                "port_id": pid,
+                "vessel_type": v_type,
+                "latitude": v_lat,
+                "longitude": v_lon,
+                "distance_from_shore_km": round(4.2 + (seed_val % 6), 1),
+                "zone": "COASTAL_APPROACH" if v_type == "FERRY" else "ANCHORAGE_QUEUE",
+                "estimated_length_m": 38.0 if v_type == "FERRY" else 132.0,
+                "confidence": 0.93,
+                "ais_matched": False,
+                "eta_minutes": 26 if v_type == "FERRY" else 85,
+            }
+        )
+
+    packet: dict[str, Any] = {
+        "telemetry_header": {
+            "satellite_id": "EOS-EDGEPORT-LEO-04",
+            "sensor_mode": "C-BAND_SAR_ALL_WEATHER",
+            "pass_timestamp_utc": pass_timestamp_utc,
+            "monitoring_limit_km": 370,
+            "raw_scene_size_mb": 142.4,
+            "cropped_roi_size_mb": 4.2,
+            "downlinked_json_size_kb": 0.0,
+            "bandwidth_saved_pct": 99.99,
+            "onboard_inference_time_ms": 34.6,
+            "sea_state": sea_state,
+        },
+        "ports_summary": ports_summary,
+        "vessels": vessels,
+    }
+    minified = json.dumps(packet, separators=(",", ":")).encode("utf-8")
+    size_kb = round(len(minified) / 1024.0, 2)
+    packet["telemetry_header"]["downlinked_json_size_kb"] = size_kb
+    packet["telemetry_header"]["bandwidth_saved_pct"] = round(
+        (1.0 - (size_kb / (142.4 * 1024.0))) * 100.0, 2
+    )
+    return packet
+
+
+def summarize_national_port_network(analyzed_result: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return status rows across all configured Indian non-major ports."""
+    active_by_id = {
+        p["port_id"]: p for p in analyzed_result["packet"].get("ports_summary", [])
+    }
+    rows: list[dict[str, Any]] = []
+    for port in analyzed_result["ports_config"].get("ports", []):
+        pid = port["port_id"]
+        active = active_by_id.get(pid)
+        rows.append(
+            {
+                "port_id": pid,
+                "port_name": port["port_name"],
+                "state": port["state"],
+                "coast": port.get("coast", "WEST"),
+                "lat": port["lat"],
+                "lon": port["lon"],
+                "max_berths": port["max_berths"],
+                "operational_profile": port.get("operational_profile", ""),
+                "in_active_swath": active is not None,
+                "utilization_index": active["utilization_index"] if active else None,
+                "congestion_status": active["congestion_status"] if active else "AWAITING_NEXT_PASS",
+                "dark_vessels_detected": active["dark_vessels_detected"] if active else 0,
+                "estimated_trade_value_inr_cr": active["estimated_trade_value_inr_cr"] if active else 0.0,
+            }
+        )
+    return rows
+

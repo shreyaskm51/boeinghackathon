@@ -31,7 +31,7 @@
                      "congestion_status", "estimated_cargo_tonnage_mt",
                      "estimated_trade_value_inr_cr", "dark_vessels_detected"],
         "properties": {
-          "port_id": {"enum": ["IN-KRW", "IN-BEY", "IN-KAK", "IN-GOP"]},
+          "port_id": {"type": "string", "pattern": "^IN-[A-Z0-9]{3,5}$"},
           "port_name": {"type": "string"},
           "state": {"type": "string"},
           "max_berths": {"type": "integer"},
@@ -58,7 +58,7 @@
                      "ais_matched", "eta_minutes"],
         "properties": {
           "vessel_id": {"type": "string"},
-          "port_id": {"enum": ["IN-KRW", "IN-BEY", "IN-KAK", "IN-GOP"]},
+          "port_id": {"type": "string", "pattern": "^IN-[A-Z0-9]{3,5}$"},
           "vessel_type": {"enum": ["FISHING_BOAT", "FERRY", "CARGO_VESSEL"]},
           "latitude": {"type": "number"},
           "longitude": {"type": "number"},
