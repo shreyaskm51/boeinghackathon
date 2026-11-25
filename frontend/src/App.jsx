@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import MaritimeMap from "./components/MaritimeMap.jsx";
 import RealDataPanel from "./components/RealDataPanel.jsx";
-import SimulatorPanel from "./components/SimulatorPanel.jsx";
 import TradeNowcastChart from "./components/TradeNowcastChart.jsx";
 
 const CONGESTION_COLORS = {
@@ -18,7 +17,6 @@ export default function App() {
   const [selectedPortId, setSelectedPortId] = useState("ALL");
   const [useLiveAis, setUseLiveAis] = useState(false);
   const [offlineMapMode, setOfflineMapMode] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(false);
   const [copiedPortId, setCopiedPortId] = useState("");
   const [directorySearch, setDirectorySearch] = useState("");
   // "auto" lets the server choose (real Sentinel-1 data when it has some, else simulated)
@@ -131,28 +129,6 @@ export default function App() {
     }
   };
 
-  const handleRunSimulation = async (simParams) => {
-    setIsSimulating(true);
-    setErrorMsg("");
-    try {
-      const res = await fetch("/api/simulate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...simParams, use_live_ais: useLiveAis }),
-      });
-      if (!res.ok) {
-        const detail = await res.json().catch(() => ({}));
-        throw new Error(detail.error ? `Simulation failed: ${detail.error}` : `Simulation failed (${res.status})`);
-      }
-      const json = await res.json();
-      setData(json);
-      setDataSource("simulated");
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Simulation error.");
-    } finally {
-      setIsSimulating(false);
-    }
-  };
 
   const handleCopyAlert = async (portId, text) => {
     try {
@@ -479,20 +455,11 @@ export default function App() {
           />
         ) : null}
 
-        {/* PANEL 3: Onboard AI Live Simulator */}
-        <SimulatorPanel
-          ports={allPorts}
-          activePacket={data.packet}
-          simulation={data.simulation}
-          isSimulating={isSimulating}
-          onRunSimulation={handleRunSimulation}
-        />
-
-        {/* PANEL 4: Port Operations, Trade Nowcasting & SMS Alert Center */}
+        {/* PANEL 3: Port Operations, Trade Nowcasting & SMS Alert Center */}
         <section className="panel" aria-labelledby="ops-heading">
           <div className="panel-header">
             <h2 id="ops-heading">
-              4. Small-Port Operations, Trade Nowcasting &amp; SMS Alert Center
+              3. Small-Port Operations, Trade Nowcasting &amp; SMS Alert Center
             </h2>
           </div>
 
