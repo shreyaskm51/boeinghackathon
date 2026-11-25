@@ -1,8 +1,14 @@
 # EdgePort — Two-Person Work Split
 
 The PRD splits cleanly into two halves that only talk to each other through **one file**:
-`outputs/latest_telemetry.json` (the < 3 KB orbital packet). Agree on that format (see
+`outputs/latest_telemetry.json` (the < 200 KB orbital packet). Agree on that format (see
 `contracts/`) and you can both build at the same time without blocking each other.
+
+> **Contract change v2 (team decision):** 16 ports instead of 4, and the packet budget is now
+> **< 200 KB** instead of < 3 KB, so every detected vessel is listed (16 x 142.4 MB raw SAR ->
+> ~100–150 KB JSON is still a 99.99 % bandwidth saving). `port_id` is now any `IN-XXX` code —
+> read the port list from `data/ports_config.json`; never hard-code it. No fields were renamed
+> or removed. `run_pass` also gained an optional keyword `sensor_mode="C-BAND" | "X-BAND"`.
 
 ```
  PERSON A — Track B (Onboard AI)            PERSON B — Track A (Ground + Dashboard)
@@ -24,7 +30,7 @@ Branch: `feature/onboard-ai` · Task brief: [`docs/PERSON_A_onboard_ai.md`](docs
 | `onboard_ai/cfar_onnx_detector.py` | Step 4 — CA-CFAR + auto-generated ONNX classifier |
 | `onboard_ai/georeferencer.py` | Step 4 — pixel → WGS84, length, zone tagging |
 | `onboard_ai/edge_pipeline.py` | Step 4 — orchestrator, raster purge, writes telemetry JSON |
-| `tests/test_onboard_*.py` | Packet < 3 KB, matches schema, > 99% bandwidth saved |
+| `tests/test_onboard_*.py` | Packet < 200 KB, matches schema, > 99% bandwidth saved |
 
 ## Person B — Ground Station & Dashboard (`ground_station/`, `app.py`)
 Branch: `feature/ground-dashboard` · Task brief: [`docs/PERSON_B_ground_dashboard.md`](docs/PERSON_B_ground_dashboard.md)
@@ -53,7 +59,7 @@ The "Run Orbital Pass Simulation" button in `app.py` (Person B) calls
 
 ```python
 def run_pass(
-    port_id: str | None = None,          # None = full constellation sweep (all 4 ports)
+    port_id: str | None = None,          # None = full constellation sweep (all 16 ports)
     sea_state: str = "MODERATE",          # "CALM" | "MODERATE" | "MONSOON_ROUGH"
     pass_time_ist: str = "18:00",         # "06:00" | "12:00" | "18:00" | "23:30"
     uploaded_image: bytes | None = None,  # optional user .tif/.png

@@ -28,18 +28,16 @@
 >    write `outputs/latest_telemetry.json`. Log raw MB vs JSON KB and bandwidth saved %.
 >    Generate 64×64 PNG chips only for CRITICAL_CONGESTION or DARK_VESSEL_OFFSHORE.
 >    Add `if __name__ == "__main__":` so `python -m onboard_ai.edge_pipeline` writes a packet.
-> 5. `tests/test_onboard_pipeline.py` (pytest): packet validates against the schema, is < 3 KB,
->    bandwidth_saved_pct > 99, all 4 ports present on a full sweep.
+> 5. `tests/test_onboard_pipeline.py` (pytest): packet validates against the schema, is < 200 KB,
+>    bandwidth_saved_pct > 99, all 16 ports present on a full sweep.
 >
-> Keep the packet under 3 KB (measure it minified with `separators=(",", ":")`). Budget is
-> tight: the 4 port summaries take ~1.4 KB and each vessel ~330 bytes, so only ~4 vessels fit
-> on a full sweep. Put totals in `counts`, and list only the highest-priority vessels in
-> `vessels` (anchorage queue cargo, approaching ferries, offshore unknowns first). Round
-> lat/lon to 4 dp and other floats to 1–2 dp. `contracts/sample_telemetry.json` (2.76 KB) is
-> a reference. Set `ais_matched: false` and `dark_vessels_detected: 0` — the ground station
-> fills those in.
+> Keep the packet under 200 KB (contract v2; measured minified with `separators=(",", ":")`).
+> Every detected vessel normally fits; if a sweep ever exceeds the budget, keep all port
+> summaries and drop the lowest-priority vessels first. Round lat/lon to 4 dp and other
+> floats to 1–2 dp. Set `ais_matched: false` and `dark_vessels_detected: 0` — the ground
+> station fills those in.
 
 ## Done when
-- `python -m onboard_ai.edge_pipeline` writes a valid packet < 3 KB.
+- `python -m onboard_ai.edge_pipeline` writes a valid packet < 200 KB.
 - `pytest tests/test_onboard_pipeline.py` passes.
 - PR from `feature/onboard-ai` → `main` opened.
