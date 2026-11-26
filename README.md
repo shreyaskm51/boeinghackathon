@@ -33,15 +33,17 @@ pytest                               # tests
 For frontend development with hot reload, run the API server and `cd frontend && npm run dev`
 (Vite on http://localhost:5173 proxies `/api` to port 8000).
 
-The dashboard shows **real Sentinel-1 detections** by default once they are fetched (Data Source:
-Real / Simulated); the Real Sentinel-1 panel can refetch one port (~15 s) or all ports.
-Real scenes come from Copernicus Sentinel-1 via Microsoft Planetary Computer; no AIS is
-matched to them yet, so no vessel is flagged dark.
+The dashboard is **one port's own screen**: pick a port at the top (your choice is
+remembered) and its map fills the screen — a light MapLibre map (OpenFreeMap Positron) with the
+berth and anchorage areas, the ships detected in the newest real Sentinel-1 pass, and frosted
+panels for port status, the ship list (click a ship to fly to it) and the port master SMS.
 
-In the dashboard, "Run Orbital Pass Simulation" calls the onboard pipeline live. Pick one port
-(~1 s) or all 60 (~30 s), C-band or the X-band 3 m spotlight, or upload a .tif/.png/.npy scene.
-```text
-```
+- **Real radar** toggle lays the actual Sentinel-1 image over the map.
+- **⟳** fetches the port's newest Sentinel-1 pass (~15 s); ports not fetched yet show a button.
+- Passes older than **30 days** are marked "Old satellite pass"; ports with no recent scene
+  (Kavaratti) say so instead of showing zeros.
+- Real scenes come from Copernicus Sentinel-1 via Microsoft Planetary Computer; no AIS is
+  matched to them yet, so no vessel is flagged dark.
 
 ## Repo layout
 ```
@@ -49,7 +51,7 @@ contracts/        telemetry_schema.json + sample_telemetry.json  (shared contrac
 data/             ports_config.json (shared), ais_ground_truth.json (Person B), sample_passes/
 onboard_ai/       Person A — SAR simulator, CFAR+ONNX detector, georeferencer, edge pipeline
 ground_station/   Person B — analytics engine, AIS connector, SMS alerts, API server
-frontend/         Person B — React + Leaflet operator dashboard (Vite)
+frontend/         React + MapLibre single-port dashboard (Vite)
 outputs/          generated telemetry (git-ignored)
 docs/             per-person task briefs with ready-to-paste Antigravity prompts
 ```
