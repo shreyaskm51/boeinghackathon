@@ -26,6 +26,18 @@ as a "Data Source" toggle.
 | `frontend/src/App.jsx` | Data Source selector, real/simulated banner, real-data refresh + job polling, "AIS N/A" badges. |
 | `frontend/src/components/MaritimeMap.jsx` | Vessels with `AIS_NOT_CHECKED` keep their type colour instead of dark red. |
 
+## Dashboard redesign (third round)
+The React app is now **one port at a time**: a port picker, a full-screen MapLibre light map of
+that port, and frosted floating panels. Design: `docs/superpowers/specs/2026-11-26-port-view-redesign-design.md`.
+
+- Removed: `MaritimeMap.jsx` (Leaflet), `RealDataPanel.jsx`, the sidebar, national KPI strip,
+  60-port berth list, port directory, data-source switch, live-AIS checkbox. `leaflet` dependency removed.
+- New: `PortMap.jsx` (MapLibre), `TopBar.jsx`, `PortStatsPanel.jsx`, `ShipsPanel.jsx`,
+  `SmsPanel.jsx`, `StatePanel.jsx`, `Toast.jsx`; logic in `src/lib/` with Vitest tests (`npm test`).
+- Server: `real_data.ports[pid]` gains `bounds` and `age_days`; ports never fetched get
+  `data_source: "NOT_FETCHED"` and the SMS "Not observed yet, fetch a satellite pass."
+- The dashboard payload is unchanged otherwise (`nowcast`, `national_network` still sent).
+
 ## Still to agree on
 - **Packet budget:** 200 KB. A 60-port sweep detects ~1,100 vessels; ~740 fit, chosen by
   priority (every port keeps some; all vessels stay in each port's `counts`). Raising the
