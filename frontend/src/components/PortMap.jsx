@@ -50,9 +50,15 @@ function vesselsGeoJSON(vessels, selectedId) {
   };
 }
 
-function portBounds(port) {
+/** Harbour + anchorage boxes, widened to include this port's detected ships. */
+function portBounds(port, vessels) {
   const [a, b] = [port.anchorage_bbox, port.berth_bbox];
-  return [[Math.min(a[0], b[0]), Math.min(a[1], b[1])], [Math.max(a[2], b[2]), Math.max(a[3], b[3])]];
+  let [w, s, e, n] = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])];
+  for (const v of vessels) {
+    w = Math.min(w, v.longitude); e = Math.max(e, v.longitude);
+    s = Math.min(s, v.latitude); n = Math.max(n, v.latitude);
+  }
+  return [[w, s], [e, n]];
 }
 
 function addLayers(map) {
@@ -123,8 +129,8 @@ export default function PortMap({ port, vessels, selectedVesselId, onSelectVesse
     const map = mapRef.current;
     if (!ready || !map || !port) return;
     map.getSource("zones").setData(zonesGeoJSON(port));
-    map.fitBounds(portBounds(port), { padding, duration: 900, maxZoom: 14 });
-  }, [ready, port, padding]);
+    map.fitBounds(portBounds(port, vessels), { padding, duration: 900, maxZoom: 14 });
+  }, [ready, port, padding]); // eslint-disable-line react-hooks/exhaustive-deps -- re-fit on port change, not on every ship update
 
   useEffect(() => {
     if (ready) mapRef.current?.getSource("vessels").setData(vesselsGeoJSON(vessels, selectedVesselId));
