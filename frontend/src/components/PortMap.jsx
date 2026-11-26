@@ -130,7 +130,7 @@ export default function PortMap({ port, vessels, selectedVesselId, onSelectVesse
     if (!ready || !map || !port) return;
     map.getSource("zones").setData(zonesGeoJSON(port));
     map.fitBounds(portBounds(port, vessels), { padding, duration: 900, maxZoom: 14 });
-  }, [ready, port, padding]); // eslint-disable-line react-hooks/exhaustive-deps -- re-fit on port change, not on every ship update
+  }, [ready, port?.port_id, padding]); // eslint-disable-line react-hooks/exhaustive-deps -- re-fit on port change only, so a refresh keeps the user's pan/zoom
 
   useEffect(() => {
     if (ready) mapRef.current?.getSource("vessels").setData(vesselsGeoJSON(vessels, selectedVesselId));

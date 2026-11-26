@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PortMap from "./components/PortMap.jsx";
 import PortStatsPanel from "./components/PortStatsPanel.jsx";
 import ShipsPanel from "./components/ShipsPanel.jsx";
@@ -6,7 +6,7 @@ import SmsPanel from "./components/SmsPanel.jsx";
 import StatePanel from "./components/StatePanel.jsx";
 import Toast from "./components/Toast.jsx";
 import TopBar from "./components/TopBar.jsx";
-import { pickInitialPortId, selectPortView } from "./lib/portState.js";
+import { pickInitialPortId, radarFor, selectPortView } from "./lib/portState.js";
 
 const STORAGE_KEY = "edgeport.port";
 // Keeps the harbour visible between the floating panels. On narrow screens the side panels
@@ -42,6 +42,8 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState("");
   const padding = useMapPadding();
+  const portIdRef = useRef(portId);
+  portIdRef.current = portId;
 
   const loadDashboard = useCallback(async () => {
     setLoadError("");
@@ -73,29 +75,34 @@ export default function App() {
   // Fetch the newest real Sentinel-1 pass for the current port (~15 s). On failure the
   // previous data stays on screen and the reason is shown in a toast.
   const refreshPort = async () => {
+    const requested = portId;
+    // only report on the port that is still on screen (the user may switch mid-refresh)
+    const report = (msg) => {
+      if (portIdRef.current === requested) setToast(msg);
+    };
     setRefreshing(true);
     setToast("");
     try {
       const res = await fetch("/api/real/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ port_id: portId }),
+        body: JSON.stringify({ port_id: requested }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || `Refresh failed (${res.status})`);
       setData(json);
       if (json.refreshed_port && json.refreshed_port.status !== "OK") {
-        setToast(json.refreshed_port.error || "No usable satellite pass for this port.");
+        report(json.refreshed_port.error || "No usable satellite pass for this port.");
       }
     } catch (err) {
-      setToast(err instanceof Error && err.message !== "Failed to fetch" ? err.message : "Refresh failed: EdgePort server unreachable.");
+      report(err instanceof Error && err.message !== "Failed to fetch" ? err.message : "Refresh failed: EdgePort server unreachable.");
     } finally {
       setRefreshing(false);
     }
   };
 
   const view = useMemo(() => (data && portId ? selectPortView(data, portId) : null), [data, portId]);
-  const radar = view?.real?.status === "OK" ? { url: view.real.raw_preview_url, bounds: view.real.bounds } : null;
+  const radar = radarFor(view?.real);
 
   if (!data) {
     return (

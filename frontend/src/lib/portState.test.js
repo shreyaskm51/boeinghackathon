@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OLD_PASS_DAYS, pickInitialPortId, selectPortView } from "./portState.js";
+import { OLD_PASS_DAYS, pickInitialPortId, radarFor, selectPortView } from "./portState.js";
 
 const ports = [{ port_id: "IN-KRW" }, { port_id: "IN-PNJ" }, { port_id: "IN-KVT" }, { port_id: "IN-DGH" }];
 const data = {
@@ -46,5 +46,14 @@ describe("selectPortView", () => {
     expect(v.state).toBe("current");
     expect(v.reroute.port_id).toBe("IN-PNJ");
     expect(selectPortView(data, "IN-DGH").reroute).toBeNull();
+  });
+});
+
+describe("radarFor", () => {
+  it("cache-busts the radar image with the fetch time so a refresh shows the new scene", () => {
+    const real = { status: "OK", raw_preview_url: "/api/real/preview/IN-PNJ/raw.png", bounds: [1, 2, 3, 4], fetched_utc: "2026-11-25T21:34:00Z" };
+    expect(radarFor(real)).toEqual({ url: "/api/real/preview/IN-PNJ/raw.png?v=2026-11-25T21%3A34%3A00Z", bounds: [1, 2, 3, 4] });
+    expect(radarFor({ status: "NO_SCENE" })).toBeNull();
+    expect(radarFor(null)).toBeNull();
   });
 });

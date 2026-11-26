@@ -35,3 +35,10 @@ export function selectPortView(data, portId) {
     hasAnyRealData,
   };
 }
+
+/** Radar layer for a port, cache-busted by fetch time so a refresh shows the new scene. */
+export function radarFor(real) {
+  if (!real || real.status !== "OK") return null;
+  const v = real.fetched_utc ? `?v=${encodeURIComponent(real.fetched_utc)}` : "";
+  return { url: `${real.raw_preview_url}${v}`, bounds: real.bounds };
+}
